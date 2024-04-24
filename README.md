@@ -1,23 +1,17 @@
-# Bucklescript-TEA
-
-[![NPM](https://nodei.co/npm/bucklescript-tea.png?compact=true)](https://nodei.co/npm/bucklescript-tea/)
-
-[![Build Status](https://travis-ci.org/OvermindDL1/bucklescript-tea.svg?branch=master)](https://travis-ci.org/OvermindDL1/bucklescript-tea)
+# Melange-TEA
 
 ## Reason to Use
 
-- Entirely event driven, this is like React/Flow but type-safe and significantly faster.
-- Amazingly fast compile-times, especially with the built-in watcher of Bucklescript.
 - You have the entire power of the OCaml language at your disposal to Javascript.
 - You have access to the highly optimized OCaml ecosystem if necessary.
 - You have access to the entire Javascript eco-system through a type-safe interface if necessary.
-- Open license, same as Bucklescript itself.
+- Open license, same as Melange itself.
 
 ## Description
 
-This is a library for OCaml-via-Bucklescript (though in the future to support native compilation for back-end template generation) that follows TEA/[The Elm Architecture](https://guide.elm-lang.org/architecture/) as I see it in various incarnations.
+This is a library for OCaml-via-melange (though in the future to support native compilation for back-end template generation) that follows TEA/[The Elm Architecture](https://guide.elm-lang.org/architecture/) as I see it in various incarnations.
 
-You can read more about it [here](http://blog.overminddl1.com/tags/bucklescript-tea/).
+You can read more about it [here](http://blog.overminddl1.com/tags/melange-tea/).
 
 Currently included and planned forms are:
 
@@ -29,31 +23,11 @@ Currently included and planned forms are:
 
 With the above any PR's are welcome to clean up code, flesh out functionality, and until we hit 1.0.0 break API compatibility if necessary (but as minimally as possible). 1.0.0 should be complete when the Elm API style is followed as closely as possible and becomes as optimized as it can become while following the API, once that is set then API breaking changes will only happen to match Elm updates. PR's are also welcome to add support to other systems such as Yarn as long as it does not break the base NPM packaging system.
 
-## Installation
-
-### NPM
-
-First verify you have `bs-platform` installed, whether globally or just in your project.
-
-Then install via npm by:
-
-```sh
-npm install --save-dev bucklescript-tea
-```
-
-Then in your current Bucklescript project just use this as a dependency add this to your bsconfig.json file:
-
-```json
-  "bs-dependencies" : ["bucklescript-tea"]
-```
-
-_If you install it via any other method make sure that `bucklescript-tea` is a dependency in your npm's package.json file as `bsb` uses that for lookup._
-
 ## Usage
 
 ### Example project
 
-Once you have your Bucklescript project set up and the dependencies configured as above then lets make a new TEA module, the Counter, as is traditional in Elm tutorials, this file will be named `counter.ml` in your `src` directory for this example. Code is described via inline comments:
+Once you have your melange project set up and the dependencies configured as above then lets make a new TEA module, the Counter, as is traditional in Elm tutorials, this file will be named `counter.ml` in your `src` directory for this example. Code is described via inline comments:
 
 ```ocaml
 (* This line opens the Tea.App modules into the current scope for Program access functions and types *)
@@ -68,7 +42,7 @@ type msg =
   | Decrement  (* This will be our message to decrement the counter *)
   | Reset      (* This will be our message to reset the counter to 0 *)
   | Set of int (* This will be our message to set the counter to a specific value *)
-  [@@bs.deriving {accessors}] (* This is a nice quality-of-life addon from Bucklescript, it will generate function names for each constructor name, optional, but nice to cut down on code, this is unused in this example but good to have regardless *)
+  [@@mel.deriving {accessors}] (* This is a nice quality-of-life addon from melange, it will generate function names for each constructor name, optional, but nice to cut down on code, this is unused in this example but good to have regardless *)
 
 (* This is optional for such a simple example, but it is good to have an `init` function to define your initial model default values, the model for Counter is just an integer *)
 let init () = 4
@@ -108,9 +82,9 @@ let view model =
 
 (* This is the main function, it can be named anything you want but `main` is traditional.
   The Program returned here has a set of callbacks that can easily be called from
-  Bucklescript or from javascript for running this main attached to an element,
+  melange or from javascript for running this main attached to an element,
   or even to pass a message into the event loop.  You can even expose the
-  constructors to the messages to javascript via the above [@@bs.deriving {accessors}]
+  constructors to the messages to javascript via the above [@@mel.deriving {accessors}]
   attribute on the `msg` type or manually, that way even javascript can use it safely. *)
 let main =
   beginnerProgram { (* The beginnerProgram just takes a set model state and the update and view functions *)
@@ -130,39 +104,4 @@ To use this from javascript (with your bundler of choice) you can just do:
 
 And if you need to shut it down or pass it a message or so then you can do so via the `app` variable, or feel free to not assign it to a variable as well.
 
-For further examples see the [bucklescript-testing](https://github.com/OvermindDL1/bucklescript-testing) project for now until a full example set up is built.
-
-## Starter-Kits
-
-A list of starter-kits that get you up and running.
-
-> Feel free to extend this list!
-
-#### [tcoopman/bucklescript-tea-starter-kit](https://github.com/tcoopman/bucklescript-tea-starter-kit)
-
-* syntax: OCaml
-* build-system: [rollup](https://github.com/rollup/rollup)
-* dev-server: [zeit/serve](https://github.com/zeit/serve)
-
-#### [feluxe/bs-tea-starter-kit](https://github.com/feluxe/bs-tea-starter-kit)
-
-* syntax: ReasonML
-* build-system: [webpack](https://github.com/webpack/webpack)
-* dev-server: [webpack-dev-server](https://github.com/webpack/webpack-dev-server)
-* css: [bs-css](https://github.com/SentiaAnalytics/bs-css)
-
-#### [darklang/philip2](https://github.com/darklang/philip2)
-
-This one is not so much a starter kit as it is a porting kit, it can actually take in elm files, parse them, and output bucklescript-tea OCaml code (which can be converted to ReasonML via `refmt` of course) with only minor'ish tweaks there-after needed to get it working.
-
-See its announcement article at:  https://medium.com/@paulbiggar/philip2-an-elm-to-reasonml-compiler-a210aaa6cd04
-
-And its porting guide at:  https://github.com/darklang/philip2#how-to-port-your-project
-
-#### [tcoopman/dream-melange-tea-tailwind](https://github.com/tcoopman/dream-melange-tea-tailwind)
-
-This example works with [melange](https://github.com/melange-re/melange) and adds tailwindcss
-
-* syntax: OCaml
-* build-system: [esbuild](https://esbuild.github.io)
-* server: [dream](https://github.com/aantron/dream)
+For further examples see the [melange-testing](https://github.com/OvermindDL1/melange-testing) project for now until a full example set up is built.
