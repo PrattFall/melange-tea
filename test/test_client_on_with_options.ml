@@ -5,11 +5,11 @@ type msg =
   | Set_value of int
   [@@bs.deriving {accessors}]
 
-
 let update model = function
   | Click -> model + 1
   | Set_value n -> n
 
+let set_value n = Set_value n
 
 let view model =
   let open Tea.Html2 in

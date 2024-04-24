@@ -1,11 +1,12 @@
 open Tea
 open Tea.Html
-type ('ok,'err) result = ('ok,'err) Tea_result.t
 
 type msg =
   | GotResponse of (string, string) result
   | Req
-  [@@bs.deriving accessors]
+  [@@deriving accessors]
+
+let gotResponse x = GotResponse x
 
 let update model = function
   | GotResponse (Ok t) -> t, Cmd.none

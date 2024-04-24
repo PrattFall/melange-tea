@@ -35,14 +35,14 @@ let getPosition {position; drag} =
     }
 
 
-let updateHelp ({position} as model) = function
+let updateHelp model = function
   | DragStart xy ->
-    { position
+    { position = model.position
     ; drag = Some {start = xy; current = xy}
     }
 
   | DragAt xy ->
-    { position
+    { position = model.position
     ; drag = match model.drag with
         | None -> None
         | Some drag -> Some {drag with current = xy}
@@ -53,10 +53,12 @@ let updateHelp ({position} as model) = function
     ; drag = None
     }
 
-
 let update model msg =
   ( updateHelp model msg, Cmd.none )
 
+let dragStart xy = DragStart xy
+let dragAt xy = DragAt xy
+let dragEnd xy = DragEnd xy
 
 let subscriptions model =
   match model.drag with
@@ -66,14 +68,13 @@ let subscriptions model =
   | Some _ ->
     Sub.batch [ Mouse.moves dragAt; Mouse.ups dragEnd ]
 
-
 let px number =
   (string_of_int number) ^ "px"
 
 let onMouseDown =
   onCB "mousedown" "" (fun ev ->
       Json.Decoder.decodeEvent (Json.Decoder.map dragStart Mouse.position) ev
-      |> Result.result_to_option
+      |> Result.to_option
     )
 
 let view model =

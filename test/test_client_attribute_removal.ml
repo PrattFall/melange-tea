@@ -9,7 +9,7 @@ type model = {
 type message =
   | Select of string
   | Delete
-[@@bs.deriving {accessors}]
+[@@deriving accessors]
 
 let render_selected = function
   | Some selected ->
@@ -29,7 +29,7 @@ let lang l is_selected =
     [ onClick (Select l)
     ; style "color" "blue"
     ; if is_selected then style "border" "1px solid black" else noProp
-    ; if is_selected then Vdom.attribute "" "lang" l else noProp
+    ; if is_selected then Tea__Vdom.attribute "" "lang" l else noProp
     ]
     [ text l ]
 

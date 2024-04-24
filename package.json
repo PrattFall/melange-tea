@@ -1,11 +1,11 @@
 {
-  "name": "melange-tea",
+  "name": "melange_tea",
   "version": "0.16.0",
   "description": "TEA for Melange",
-  "source": "_build/default/src/lib/src/tea.js",
-  "main": "dist/tea.js",
-  "module": "dist/tea.m.js",
   "scripts": {
+    "bundle": "vite build",
+    "serve": "vite preview",
+    "dev": "vite",
     "opam:update": "opam update",
     "opam:install": "opam install -y . --deps-only --with-test",
     "opam:check-deps": "opam exec opan-check-npm-deps",
@@ -33,6 +33,7 @@
   },
   "homepage": "https://github.com/PrattFall/melange-tea#readme",
   "devDependencies": {
-    "parcel": "^2.12.0"
+    "vite": "^5.2.10",
+    "vite-plugin-melange": "^2.3.0"
   }
 }
