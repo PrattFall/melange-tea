@@ -4,7 +4,7 @@ open Tea.Html
 open Tea.Mouse
 
 type msg = DragStart of position | DragAt of position | DragEnd of position
-[@@bs.deriving { accessors }]
+[@@deriving accessors]
 
 type drag = { start : position; current : position }
 type model = { position : position; drag : drag option }

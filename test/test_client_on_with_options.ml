@@ -1,21 +1,23 @@
 open Tea.App
+open Tea.Html2
+open Tea.Html2.Attributes
+open Tea.Html2.Events
+open Tea.Json
 
-type msg = Click | Set_value of int [@@bs.deriving { accessors }]
+type msg = Click | Set_value of int [@@deriving accessors]
 
 let update model = function Click -> model + 1 | Set_value n -> n
-let set_value n = Set_value n
+
+let set_value v = Set_value v
 
 let view model =
-  let open Tea.Html2 in
-  let open Tea.Html2.Attributes in
-  let open Tea.Html2.Events in
-  let open Tea.Json in
   let clientX = Decoder.field "clientX" Decoder.int in
+
   div []
     (List.map
        (fun e -> div [] [ e ])
        [
-         model |> string_of_int |> text;
+         text (string_of_int model);
          button [ onClick Click ] [ text "onClick" ];
          button
            [ on ~key:"" "click" (Decoder.succeed Click) ]
@@ -26,7 +28,7 @@ let view model =
              href "https://www.google.com";
              onWithOptions ~key:"" "click"
                { defaultOptions with preventDefault = true }
-               (Tea.Json.Decoder.succeed Click);
+               (Decoder.succeed Click);
            ]
            [ text "a link with prevent default" ];
          button

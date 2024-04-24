@@ -17,8 +17,8 @@ let every ?(key = "") tagger =
               delta = (if time < !lastTime then 0.0 else time -. !lastTime);
             }
           in
-          let () = lastTime := time in
-          let () = callbacks.enqueue (tagger ret) in
+          lastTime := time;
+          callbacks.enqueue (tagger ret);
           match !id with
           | None -> ()
           | Some _stillActive ->

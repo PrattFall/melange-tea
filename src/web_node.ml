@@ -6,7 +6,6 @@ type style =
   Js.t
 
 external getStyle : style -> string -> string Js.null = "" [@@mel.get_index]
-
 external setStyle : style -> string -> string Js.null -> unit = ""
 [@@mel.set_index]
 

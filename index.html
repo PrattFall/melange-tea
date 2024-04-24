@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Testing</title>
+</head>
+
+<body>
+  <div>
+    All code is available on <a href="https://github.com/PrattFall/melange-tea">github</a>.
+    <div id="buttons">
+      <!-- <button onclick="load_app()">Shutdown</button> -->
+      <!-- <button onclick="loadApp('counter')">Counter</button> -->
+      <!-- <button onclick="loadApp('counter_debug_beginner')">Counter (with debugger, beginner)</button> -->
+      <!-- <button onclick="loadApp('counter_debug_standard')">Counter (with debugger, standard)</button> -->
+      <!-- <button onclick="loadApp('counter_debug_program')">Counter (with debugger, program)</button> -->
+      <!-- <button onclick="loadApp('btn_update_span')">Button Update Span</button> -->
+      <!-- <button onclick="loadApp('attribute_removal')">Attribute Removal</button> -->
+      <!-- <button onclick="loadApp('drag')">Drag</button> -->
+      <!-- <button onclick="loadApp('on_with_options')">On (with options)</button> -->
+      <!-- <button onclick="loadApp('http_task')">Http task chaining</button> -->
+    </div>
+  </div>
+  <div id="content" style="width:49%;display:inline-block;vertical-align:top;"></div>
+  <script src="/test/test_client.ml" type="module"></script>
+  <script type="module">
+    var elem = document.getElementById("content");
+    var app = undefined;
+
+    function loadApp(name) {
+      if (app) {
+        console.log("Shutting down app");
+        app.shutdown();
+        elem.className = "app";
+        app = undefined;
+      }
+      if (name) {
+        console.log("Loading app:", name)
+        elem.className = "app-" + name;
+        app = Test_client[name](elem, 0);
+      }
+    }
+  </script>
+</body>
+
+</html>
