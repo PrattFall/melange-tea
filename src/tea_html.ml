@@ -344,7 +344,7 @@ let onWithOptions ~(key:string) eventName (options: options) decoder =
     if options.preventDefault then event##preventDefault () |> ignore;
     event
     |> Tea_json.Decoder.decodeEvent decoder
-    |> Tea_result.result_to_option
+    |> Result.to_option
   )
 
 let on ~(key:string) eventName decoder =

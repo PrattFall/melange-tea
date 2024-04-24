@@ -102,16 +102,13 @@ type body =
 
 (* Main interface functions *)
 
-let getAllResponseHeaders (x: t) : (string, errors) Tea_result.t =
-  let open Tea_result in
+let getAllResponseHeaders (x: t) : (string, errors) result =
   match Js.Null.toOption (get_all_response_headers x) with
   | None -> Error IncompleteResponse
   | Some "" -> Error NetworkError
   | Some s -> Ok s
 
-let getAllResponseHeadersAsList (x: t) : ((string * string) list, errors) Tea_result.t =
-  let open Tea_result in
-
+let getAllResponseHeadersAsList (x: t) : ((string * string) list, errors) result =
   let format_value (s: Js.String.t) =
       s
       |> Js.String.split ~sep:"\r\n"
@@ -132,13 +129,13 @@ let getAllResponseHeadersAsList (x: t) : ((string * string) list, errors) Tea_re
   | Error _ as err -> err
   | Ok s -> Ok (format_value s)
 
-let getAllResponseHeadersAsDict (x: t) : (string Map.Make(String).t, errors) Tea_result.t =
+let getAllResponseHeadersAsDict (x: t) : (string Map.Make(String).t, errors) result =
   let module StringMap = Map.Make(String) in
   match getAllResponseHeadersAsList x with
-  | Tea_result.Error _ as err -> err
-  | Tea_result.Ok l ->
+  | Error _ as err -> err
+  | Ok l ->
     let insert d (k, v) = StringMap.add k v d in
-    Tea_result.Ok (List.fold_left insert StringMap.empty l)
+    Ok (List.fold_left insert StringMap.empty l)
 
 let open_ (method': string) (url: string) ?(async=true) ?(user="") ?(password="") x =
   _open method' url async user password x

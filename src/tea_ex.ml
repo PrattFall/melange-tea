@@ -8,7 +8,6 @@ let render_event ?(key= "")  msg =
 module LocalStorage =
   struct
     open Tea_task
-    open Tea_result
 
     let length =
       nativeBinding
