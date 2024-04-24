@@ -1,46 +1,38 @@
 {
-  "name": "bucklescript-tea",
-  "version": "0.15.0",
-  "description": "TEA for Bucklescript",
-  "main": "index.js",
+  "name": "melange-tea",
+  "version": "0.16.0",
+  "description": "TEA for Melange",
+  "source": "_build/default/src/lib/src/tea.js",
+  "main": "dist/tea.js",
+  "module": "dist/tea.m.js",
   "scripts": {
-    "clean": "bsb clean",
-    "clean:all": "bsb -clean-world",
-    "build": "bsb",
-    "build:all": "bsb -make-world",
-    "watch": "bsb -w",
-    "build:test:client": "browserify --standalone=Test_client --outfile=lib/js/test-ocaml/app_test_client.js lib/js/test-ocaml/test_client.js",
-    "watch:test:client": "watchify --standalone=Test_client --outfile=lib/js/test-ocaml/app_test_client.js lib/js/test-ocaml/test_client.js",
-    "watch:test": "run-p watch watch:test:*",
-    "prebuild:test": "run-s build",
-    "build:test": "run-p build:test:*",
-    "pretest": "run-s build:test",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dual-syntax": "bin/dual-syntax"
+    "opam:update": "opam update",
+    "opam:install": "opam install -y . --deps-only --with-test",
+    "opam:check-deps": "opam exec opan-check-npm-deps",
+    "init": "opam switch create . 5.1.1 -y --deps-only && npm run install-opam-npm",
+    "install-opam-npm": "npm install && npm run opam:install && npm run opam:check-deps",
+    "dune": "opam exec -- dune",
+    "clean": "npm run dune -- clean",
+    "build": "npm run dune -- build",
+    "build:verbose": "npm run build -- --verbose",
+    "watch": "npm run build -- --watch"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/overminddl1/bucklescript-tea.git"
+    "url": "git+https://github.com/PrattFall/melange-tea.git"
   },
   "keywords": [
     "TEA",
-    "Bucklescript",
+    "Melange",
     "OCaml"
   ],
   "author": "OvermindDL1",
   "license": "LGPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/overminddl1/bucklescript-tea/issues"
+    "url": "https://github.com/PrattFall/melange-tea/issues"
   },
-  "homepage": "https://github.com/overminddl1/bucklescript-tea#readme",
+  "homepage": "https://github.com/PrattFall/melange-tea#readme",
   "devDependencies": {
-    "browserify": "^14.0.0",
-    "bs-platform": "^7.1.1",
-    "npm-run-all": "4.0.2",
-    "pre-commit": "^1.2.0",
-    "watchify": "^3.11.1"
-  },
-  "pre-commit": [
-    "dual-syntax"
-  ]
+    "parcel": "^2.12.0"
+  }
 }
