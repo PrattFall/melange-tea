@@ -1,0 +1,5 @@
+(library
+  (name tea)
+  (public_name melange_tea)
+  (preprocess (pps melange.ppx))
+  (modes melange))
