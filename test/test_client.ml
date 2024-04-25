@@ -24,7 +24,7 @@ type document
 
 external document : document = "document"
 
-external get_by_id : document -> string -> Dom.element = "getElementById"
+external get_by_id : document -> string -> Dom.element Js.nullable = "getElementById"
 [@@mel.send]
 
 external children : Dom.element -> Dom.nodeList = "childNodes" [@@mel.get]
@@ -66,7 +66,9 @@ let http_task =
   main
 
 let elem = get_by_id document "content"
-let buttons = get_by_id document "buttons"
+let buttons = get_by_id document "buttons";;
+
+counter elem () |> ignore;;
 
 let all_examples =
   [
@@ -81,6 +83,3 @@ let all_examples =
     HttpTask;
   ]
 ;;
-
-Js.log (children buttons);;
-Js.log all_examples
