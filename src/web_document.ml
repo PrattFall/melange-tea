@@ -1,27 +1,37 @@
 (* TODO:  Polyfill document if it is missing, like on node or in native *)
 
-type t =
-  < body : Web_node.t [@mel.get]
-  ; createElement : string -> Web_node.t [@mel.meth]
-  ; createElementNS : string -> string -> Web_node.t [@mel.meth]
-  ; createComment : string -> Web_node.t [@mel.meth]
-  ; createTextNode : string -> Web_node.t [@mel.meth]
-  ; getElementById : string -> Web_node.t Js.Nullable.t [@mel.meth]
-  ; location : Web_location.t [@mel.get] >
-  Js.t
+external document : Dom.document = "document"
+external body : Dom.document -> Dom.node = "body" [@@mel.get]
 
-external document : t = "document"
+external create_element : Dom.document -> string -> Dom.element
+  = "createElement"
+[@@mel.send]
 
-let body () = document##body
-let createElement typ = document##createElement typ
-let createElementNS namespace key = document##createElementNS namespace key
-let createComment text = document##createComment text
-let createTextNode text = document##createTextNode text
-let getElementById id = document##getElementById id
+external create_element_ns : Dom.document -> string -> string -> Dom.element
+  = "createElementNS"
+[@@mel.send]
 
-let createElementNsOptional namespace tagName =
+let create_element' ?(namespace = "") doc typ =
   match namespace with
-  | "" -> document##createElement tagName
-  | ns -> document##createElementNS ns tagName
+  | "" -> create_element doc typ
+  | ns -> create_element_ns doc ns typ
 
-let location () = document##location
+external create_comment : Dom.document -> string -> Dom.element
+  = "createComment"
+[@@mel.send]
+
+external create_text_node : Dom.document -> string -> Dom.element
+  = "createTextNode"
+[@@mel.send]
+
+external get_element_by_id : Dom.document -> string -> Dom.element Js.nullable
+  = "getElementById"
+[@@mel.send]
+
+let get_element_by_id' id =
+  get_element_by_id document id |> Js.Nullable.toOption
+
+external location : Dom.document -> Web_location.t = "location" [@@mel.get]
+
+let get_location () =
+    location document

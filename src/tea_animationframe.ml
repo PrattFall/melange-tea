@@ -22,16 +22,16 @@ let every ?(key = "") tagger =
           match !id with
           | None -> ()
           | Some _stillActive ->
-              let () = id := Some (Web.Window.requestAnimationFrame onFrame) in
+              let () = id := Some (Web.Window.request_animation_frame onFrame) in
               ())
     in
-    let () = id := Some (Web.Window.requestAnimationFrame onFrame) in
+    let () = id := Some (Web.Window.request_animation_frame onFrame) in
     fun () ->
       match !id with
       | None -> ()
       | Some i ->
           (* let () = Js.log ("rAF", "disable") in *)
-          let () = Web.Window.cancelAnimationFrame i in
+          let () = Web.Window.cancel_animation_frame i in
           let () = id := None in
           ()
   in

@@ -1,4 +1,7 @@
 open Vdom
+
+module Node = Web_node
+
 module Cmds = Tea_html_cmds
 
 let map = Tea_app.map
@@ -340,7 +343,7 @@ let onInputOpt ?(key = "") msg =
       match Js.Undefined.toOption ev##target with
       | None -> None
       | Some target -> (
-          match Js.Undefined.toOption target##value with
+          match Js.Undefined.toOption (Node.value target) with
           | None -> None
           | Some value -> msg value))
 
@@ -351,7 +354,7 @@ let onChangeOpt ?(key = "") msg =
       match Js.Undefined.toOption ev##target with
       | None -> None
       | Some target -> (
-          match Js.Undefined.toOption target##value with
+          match Js.Undefined.toOption (Node.value target) with
           | None -> None
           | Some value -> msg value))
 
@@ -366,7 +369,7 @@ let onCheckOpt ?(key = "") msg =
       match Js.Undefined.toOption ev##target with
       | None -> None
       | Some target -> (
-          match Js.Undefined.toOption target##checked with
+          match Js.Undefined.toOption (Node.checked target) with
           | None -> None
           | Some value -> msg value))
 

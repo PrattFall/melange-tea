@@ -1,3 +1,94 @@
+external children : Dom.element -> Dom.element Js.Array.t = "children"
+[@@mel.get]
+
+external child_nodes : 'a Dom.node_like -> 'b Dom.node_like Js.Array.t
+  = "childNodes"
+[@@mel.get]
+
+external child_elements : Dom.node -> Dom.element Js.Array.t = "childNodes"
+[@@mel.get]
+
+external has_children : 'a Dom.node_like -> bool = "hasChildNodes" [@@mel.send]
+
+external first_child : 'a Dom.node_like -> Dom.element Js.nullable
+  = "firstChild"
+[@@mel.get]
+
+external last_child : 'a Dom.node_like -> 'b Dom.node_like Js.nullable
+  = "lastChild"
+[@@mel.get]
+
+external next_sibling : 'a Dom.node_like -> 'b Dom.node_like Js.nullable
+  = "nextSibling"
+[@@mel.get]
+
+external previous_sibling : 'a Dom.node_like -> 'b Dom.node_like Js.nullable
+  = "previousSibling"
+[@@mel.get]
+
+external parent_node : 'a Dom.node_like -> 'b Dom.node_like Js.nullable
+  = "parentNode"
+[@@mel.get]
+
+external parent_element : Dom.element -> Dom.element Js.nullable
+  = "parentElement"
+[@@mel.get]
+
+external name : 'a Dom.node_like -> string Js.undefined = "nodeName" [@@mel.get]
+external value : 'a Dom.node_like -> string Js.undefined = "value" [@@mel.get]
+external set_value : 'a Dom.node_like -> string -> unit = "value" [@@mel.set]
+
+external type' : 'a Dom.node_like -> string Js.undefined = "nodeType"
+[@@mel.get]
+
+external text : 'a Dom.node_like -> string Js.undefined = "textContent"
+[@@mel.get]
+
+external append_child : 'a Dom.node_like -> 'b Dom.node_like -> 'b Dom.node_like
+  = "appendChild"
+[@@mel.send]
+
+external remove_child : 'a Dom.node_like -> 'b Dom.node_like -> 'b Dom.node_like
+  = "removeChild"
+[@@mel.send]
+
+external remove : 'a Dom.node_like -> unit = "remove" [@@mel.send]
+external clone : 'a Dom.node_like -> 'a Dom.node_like = "cloneNode" [@@mel.send]
+
+external contains : 'a Dom.node_like -> 'b Dom.node_like -> bool = "contains"
+[@@mel.send]
+
+external insert_before :
+  'a Dom.node_like -> 'b Dom.node_like -> 'c Dom.node_like -> 'b Dom.node_like
+  = "insertBefore"
+[@@mel.send]
+
+external set_attribute : 'a Dom.element_like -> string -> string -> unit
+  = "setAttribute"
+[@@mel.send]
+
+external set_attribute_ns :
+  'a Dom.element_like -> string -> string -> string -> unit = "setAttributeNS"
+[@@mel.send]
+
+let set_attribute' ?(namespace = "") elem key value =
+  match namespace with
+  | "" -> set_attribute elem key value
+  | ns -> set_attribute_ns elem ns key value
+
+external remove_attribute : 'a Dom.element_like -> string -> unit
+  = "removeAttribute"
+[@@mel.send]
+
+external remove_attribute_ns : 'a Dom.element_like -> string -> string -> unit
+  = "removeAttributeNS"
+[@@mel.send]
+
+let remove_attribute' ?(namespace = "") elem key =
+  match namespace with
+  | "" -> remove_attribute elem key
+  | ns -> remove_attribute_ns elem ns key
+
 type style =
   < setProperty : Web_json.t Js.undefined
         [@mel.get] (* TODO:  Revamp this and the next line... *)
@@ -5,98 +96,45 @@ type style =
         [@mel.meth] >
   Js.t
 
-external getStyle : style -> string -> string Js.null = "" [@@mel.get_index]
-external setStyle : style -> string -> string Js.null -> unit = ""
+external get_style : style -> string -> string Js.null = "" [@@mel.get_index]
+
+external set_style : style -> string -> string Js.null -> unit = ""
 [@@mel.set_index]
 
-type t =
-  < style : style [@mel.get]
-  ; value : string Js.undefined [@mel.set] [@mel.get]
-  ; checked : bool Js.undefined [@mel.set] [@mel.get]
-  ; childNodes : t Js.Array.t [@mel.get]
-  ; firstChild : t Js.Null.t [@mel.get]
-  ; appendChild : t -> t [@mel.meth]
-  ; removeChild : t -> t [@mel.meth]
-  ; insertBefore : t -> t -> t [@mel.meth]
-  ; remove : unit -> unit [@mel.meth]
-  ; setAttributeNS : string -> string -> string -> unit [@mel.meth]
-  ; setAttribute : string -> string -> unit [@mel.meth]
-  ; removeAttributeNS : string -> string -> unit [@mel.meth]
-  ; removeAttribute : string -> unit [@mel.meth]
-  ; addEventListener : string -> t Web_event.cb -> Web_event.options -> unit
-        [@mel.meth]
-  ; removeEventListener : string -> t Web_event.cb -> Web_event.options -> unit
-        [@mel.meth]
-  ; focus : unit -> unit [@mel.meth]
-  ; (* Text Nodes only *)
-  nodeValue : string [@mel.set] [@mel.get { null }] >
-  Js.t
+external style : Dom.element -> style = "style" [@@mel.get]
 
-external document_node : t = "document"
+type dom_event = Dom.element Web_event.t
+type dom_event_cb = Dom.element Web_event.cb
 
-type event = t Web_event.t
-type event_cb = t Web_event.cb
+external add_event_listener :
+  'a Dom.eventTarget_like -> string -> dom_event_cb -> unit = "addEventListener"
+[@@mel.send]
 
-external getProp_asEventListener : t -> 'key -> t Web_event.cb Js.undefined = ""
-[@@mel.get_index]
+external remove_event_listener :
+  'a Dom.eventTarget_like -> string -> dom_event_cb -> unit
+  = "removeEventListener"
+[@@mel.send]
 
-external setProp_asEventListener :
-  t -> 'key -> t Web_event.cb Js.undefined -> unit = ""
+external prop : 'a Dom.element_like -> 'k -> 'v = "" [@@mel.get_index]
+
+external set_prop : 'a Dom.element_like -> 'k -> 'v -> unit = ""
 [@@mel.set_index]
 
-external getProp : t -> 'key -> 'value = "" [@@mel.get_index]
-external setProp : t -> 'key -> 'value -> unit = "" [@@mel.set_index]
+let set_style_property ?(priority = false) elem key value =
+  let elem_style = style elem in
 
-let style n = n##style
-let getStyle n key = getStyle n##style key
-let setStyle n key value = setStyle n##style key value
-
-let setStyleProperty n ?(priority = false) key value =
-  let style = n##style in
-  match Js.Undefined.toOption style##setProperty with
+  match Js.Undefined.toOption elem_style##setProperty with
   | None ->
-      setStyle n key
-        value (* TODO:  Change this to setAttribute sometime, maybe... *)
+      set_style elem_style key value
+      (* TODO:  Change this to setAttribute sometime, maybe... *)
   | Some _valid ->
-      style##setProperty__ key value
+      elem_style##setProperty__ key value
         (if priority then Js.Null.return "important" else Js.Null.empty)
 
-let childNodes n = n##childNodes
-let firstChild n = n##firstChild
-let appendChild n child = n##appendChild child
-let removeChild n child = n##removeChild child
-let insertBefore n child refNode = n##insertBefore child refNode
-let remove n child = n##remove child
-let setAttributeNS n namespace key value = n##setAttributeNS namespace key value
-let setAttribute n key value = n##setAttribute key value
+external focus : 'a Dom.element_like -> unit = "focus" [@@mel.send]
 
-let setAttributeNsOptional n namespace key value =
-  match namespace with
-  | "" -> n##setAttribute key value
-  | ns -> n##setAttributeNS ns key value
-
-let removeAttributeNS n namespace key = n##removeAttributeNS namespace key
-let removeAttribute n key = n##removeAttribute key
-
-let removeAttributeNsOptional n namespace key =
-  match namespace with
-  | "" -> n##removeAttribute key
-  | ns -> n##removeAttributeNS ns key
-
-let addEventListener n typ listener options =
-  n##addEventListener typ listener options
-
-let removeEventListener n typ listener options =
-  n##removeEventListener typ listener options
-
-let focus n = n##focus ()
-
-(* Text Nodes only *)
-
-let set_nodeValue n text = n ## nodeValue #= text
-let get_nodeValue n = n##nodeValue
-
-(* Polyfills *)
+external checked : 'a Dom.element_like -> bool Js.undefined = "checked"
+[@@mel.get]
 
 let remove_polyfill : unit -> unit =
  fun () ->
@@ -106,8 +144,10 @@ let remove_polyfill : unit -> unit =
   (function() {
     if (!('remove' in Element.prototype)) {
       Element.prototype.remove = function() {
+
         if (this.parentNode) {
           this.parentNode.removeChild(this);
+
         }
       };
     };

@@ -30,7 +30,7 @@ external send_string : string Js.null -> unit = "send__string"
 external send_form_data : Web_formdata.t -> unit = "send__formdata"
 [@@mel.send.pipe: t]
 
-external send_document : Web_document.t -> unit = "send__document"
+external send_document : Dom.document -> unit = "send__document"
 [@@mel.send.pipe: t]
 
 external set_request_header : string -> string -> unit = "setRequestHeader"
@@ -51,7 +51,7 @@ external setResponseType : t -> string -> unit = "responseType" [@@mel.set]
 external response : t -> unresolved Js.null = "response" [@@mel.get]
 external responseText : t -> string = "responseText" [@@mel.get]
 external responseURL : t -> string = "responseURL" [@@mel.get]
-external responseXML : t -> Web_document.t Js.null = "responseXML" [@@mel.get]
+external responseXML : t -> Dom.document Js.null = "responseXML" [@@mel.get]
 external status : t -> int = "status" [@@mel.get]
 external statusText : t -> string = "statusText" [@@mel.get]
 external timeout : t -> float = "timeout" [@@mel.get]
@@ -105,7 +105,7 @@ type body =
   | StringBody of string
   | FormDataBody of Web_formdata.t
   | FormListBody of (string * string) list
-  | DocumentBody of Web_document.t
+  | DocumentBody of Dom.document
 (* | BlobBody of Web_blob.t *)
 (* | ArrayBufferViewBody of Web_arraybuffer_view.t *)
 
@@ -186,7 +186,7 @@ type responseBody =
   | StringResponse of string
   | ArrayBufferResponse of unit
   | BlobResponse of unit
-  | DocumentResponse of Web_document.t
+  | DocumentResponse of Dom.document
   | JsonResponse of Web_json.t
   | TextResponse of string
   | RawResponse of string * unit
@@ -243,7 +243,7 @@ let get_response (x : t) : responseBody =
 let get_responseText (x : t) : string = responseText x
 let get_responseURL (x : t) : string = responseURL x
 
-let get_responseXML (x : t) : Web_document.t option =
+let get_responseXML (x : t) : Dom.document option =
   Js.Null.toOption (responseXML x)
 
 let get_status (x : t) : int = status x

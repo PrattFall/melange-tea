@@ -1,3 +1,5 @@
+open Web_node
+
 module Decoder = struct
   type error = String.t
 
@@ -333,7 +335,7 @@ module Decoder = struct
     | ParseFail e -> Error e
     | _ -> Error "Unknown JSON parsing error"
 
-  let decodeEvent (Decoder decoder) (value : Web_node.event) =
+  let decodeEvent (Decoder decoder) (value : dom_event) =
     try decoder (Obj.magic value) with
     | ParseFail e -> Error e
     | _ -> Error "Unknown JSON parsing error"

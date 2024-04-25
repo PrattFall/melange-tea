@@ -365,7 +365,7 @@ let debug_navigation_program :
 let beginnerProgram :
     ('model, 'msg) Tea_app.beginnerProgram ->
     ('msg -> string) ->
-    Web.Node.t Js.Nullable.t ->
+    'a Dom.node_like Js.Nullable.t ->
     unit ->
     'msg debug_msg Tea_app.programInterface =
  fun { model; update; view } string_of_msg pnode flags ->
@@ -384,7 +384,7 @@ let beginnerProgram :
 let standardProgram :
     ('flags, 'model, 'msg) Tea_app.standardProgram ->
     ('msg -> string) ->
-    Web.Node.t Js.Nullable.t ->
+    'a Dom.node_like Js.Nullable.t ->
     'flags ->
     'msg debug_msg Tea_app.programInterface =
  fun { init; update; view; subscriptions } string_of_msg pnode flags ->
@@ -403,7 +403,7 @@ let standardProgram :
 let program :
     ('flags, 'model, 'msg) Tea_app.program ->
     ('msg -> string) ->
-    Web.Node.t Js.Nullable.t ->
+    'a Dom.node_like Js.Nullable.t ->
     'flags ->
     'msg debug_msg Tea_app.programInterface =
  fun { init; update; view; subscriptions; shutdown } string_of_msg pnode flags ->
@@ -416,7 +416,7 @@ let navigationProgram :
     (Web.Location.location -> 'msg) ->
     ('flags, 'model, 'msg) Tea_navigation.navigationProgram ->
     ('msg -> string) ->
-    Web.Node.t Js.Nullable.t ->
+    'a Dom.node_like Js.Nullable.t ->
     'flags ->
     'msg debug_msg Tea_app.programInterface =
  fun location_to_msg { init; update; view; subscriptions; shutdown }

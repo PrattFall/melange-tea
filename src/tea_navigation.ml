@@ -6,7 +6,7 @@ type ('flags, 'model, 'msg) navigationProgram = {
   shutdown : 'model -> 'msg Tea_cmd.t;
 }
 
-let getLocation () = Web.Location.asRecord (Web.Document.location ())
+let getLocation () = Web.Location.asRecord (Web.Document.get_location ())
 let notifier : (Web.Location.location -> unit) option ref = ref None
 
 let notifyUrlChange () =
@@ -22,23 +22,25 @@ let subscribe tagger =
   let enableCall callbacks =
     let notifyHandler location = callbacks.enqueue (tagger location) in
     let () = notifier := Some notifyHandler in
-    let handler : Web.Node.event_cb = fun [@bs] _event -> notifyUrlChange () in
-    let () = Web.Window.addEventListener "popstate" handler false in
-    fun () -> Web.Window.removeEventListener "popstate" handler false
+    let handler : Web.Node.dom_event_cb =
+     fun [@bs] _event -> notifyUrlChange ()
+    in
+    let () = Web.Window.add_event_listener "popstate" handler in
+    fun () -> Web.Window.remove_event_listener "popstate" handler
   in
   Tea_sub.registration "navigation" enableCall
 
 let replaceState url =
   let _ =
-    Web.Window.History.replaceState Web.Window.window (Js.Json.parseExn "{}") ""
-      url
+    Web.Window.History.replace_state' (Js.Json.parseExn "{}") url
+      (Web.Window.get_history ())
   in
   ()
 
 let pushState url =
   let _ =
-    Web.Window.History.pushState Web.Window.window (Js.Json.parseExn "{}") ""
-      url
+    Web.Window.History.push_state' (Js.Json.parseExn "{}") url
+      (Web.Window.get_history ())
   in
   ()
 
@@ -56,7 +58,7 @@ let newUrl url =
 
 let go step =
   Tea_cmd.call (fun _enqueue ->
-      let _ = Web.Window.(History.go window) step in
+      let _ = Web.Window.History.go' step (Web.Window.get_history ()) in
       let () = notifyUrlChange () in
       ())
 

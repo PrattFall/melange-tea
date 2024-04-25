@@ -1,3 +1,5 @@
+open Web_node
+
 type ('flags, 'model, 'msg) program = {
   init : 'flags -> 'model * 'msg Tea_cmd.t;
   update : 'model -> 'msg -> 'model * 'msg Tea_cmd.t;
@@ -171,17 +173,17 @@ let programLoop update view subscriptions initModel initCmd = function
                 let () = nextFrameID := (Some (-1) [@explicit_arity]) in
                 doRender 16
               else
-                let id = Web.Window.requestAnimationFrame doRender in
+                let id = Web.Window.request_animation_frame doRender in
                 let () = nextFrameID := (Some id [@explicit_arity]) in
                 ()
         in
         let clearPnode () =
-          while Js.Array.length (Web.Node.childNodes parentNode) > 0 do
-            match Js.Null.toOption (Web.Node.firstChild parentNode) with
+          while Js.Array.length (child_nodes parentNode) > 0 do
+            match Js.Nullable.toOption (first_child parentNode) with
             | None -> ()
             | ((Some firstChild) [@explicit_arity]) ->
                 let _removedChild =
-                  Web.Node.removeChild parentNode firstChild
+                  remove_child parentNode firstChild
                 in
                 ()
           done
@@ -239,11 +241,11 @@ let program =
       in
       programStateWrapper initModel pumpInterface shutdown
      : ('flags, 'model, 'msg) program ->
-       Web.Node.t Js.Nullable.t ->
+       'a Dom.node_like Js.Nullable.t ->
        'flags ->
        'msg programInterface)
     : ('flags, 'model, 'msg) program ->
-      Web.Node.t Js.Nullable.t ->
+      'a Dom.node_like Js.Nullable.t ->
       'flags ->
       'msg programInterface)
 
@@ -259,11 +261,11 @@ let standardProgram =
         }
         pnode args
      : ('flags, 'model, 'msg) standardProgram ->
-       Web.Node.t Js.Nullable.t ->
+       'a Dom.node_like Js.Nullable.t ->
        'flags ->
        'msg programInterface)
     : ('flags, 'model, 'msg) standardProgram ->
-      Web.Node.t Js.Nullable.t ->
+      'a Dom.node_like Js.Nullable.t ->
       'flags ->
       'msg programInterface)
 
@@ -278,11 +280,11 @@ let beginnerProgram =
         }
         pnode ()
      : ('model, 'msg) beginnerProgram ->
-       Web.Node.t Js.Nullable.t ->
+       'a Dom.node_like Js.Nullable.t ->
        unit ->
        'msg programInterface)
     : ('model, 'msg) beginnerProgram ->
-      Web.Node.t Js.Nullable.t ->
+      'a Dom.node_like Js.Nullable.t ->
       unit ->
       'msg programInterface)
 
