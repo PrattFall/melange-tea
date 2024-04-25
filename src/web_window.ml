@@ -5,7 +5,9 @@ module History = Web_window_history
 type timeoutHandlerID = int
 
 external window : Dom.window = "window"
-external history : Dom.window -> Dom.history Js.undefined = "history" [@@mel.get]
+
+external history : Dom.window -> Dom.history Js.undefined = "history"
+[@@mel.get]
 
 external local_storage : Dom.window -> Dom.Storage.t Js.undefined
   = "localStorage"
@@ -37,16 +39,18 @@ external setInterval : Dom.window -> (unit -> unit) -> float -> timeoutHandlerID
   = "setInterval"
 [@@mel.send]
 
-external addEventListener : Dom.window -> string -> Web_node.dom_event_cb -> unit
+external addEventListener :
+  Dom.window -> string -> ('e Dom.event_like -> unit) -> unit
   = "addEventListener"
 [@@mel.send]
 
-external removeEventListener : Dom.window -> string -> Web_node.dom_event_cb -> unit
+external removeEventListener :
+  Dom.window -> string -> ('e Dom.event_like -> unit) -> unit
   = "removeEventListener"
 [@@mel.send]
 
-let add_event_listener = addEventListener window
-let remove_event_listener = removeEventListener window
+let add_event_listener event_name cb = addEventListener window event_name cb
+let remove_event_listener event_name cb = removeEventListener window event_name cb
 let request_animation_frame = requestAnimationFrame window
 let cancel_animation_frame = cancelAnimationFrame window
 let clear_timeout = clearTimeout window

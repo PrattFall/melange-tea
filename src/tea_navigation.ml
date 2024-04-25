@@ -10,56 +10,55 @@ let getLocation () = Web.Location.asRecord (Web.Document.get_location ())
 let notifier : (Web.Location.location -> unit) option ref = ref None
 
 let notifyUrlChange () =
-  match !notifier with
-  | None -> ()
-  | Some cb ->
+  Option.iter
+    (fun cb ->
       let location = getLocation () in
-      let () = cb location in
-      ()
+      cb location)
+    !notifier
 
 let subscribe tagger =
   let open Vdom in
   let enableCall callbacks =
     let notifyHandler location = callbacks.enqueue (tagger location) in
-    let () = notifier := Some notifyHandler in
-    let handler : Web.Node.dom_event_cb =
-     fun [@bs] _event -> notifyUrlChange ()
+
+    notifier := Some notifyHandler;
+
+    let handler : 'e Dom.event_like -> unit =
+     fun _event -> notifyUrlChange ()
     in
-    let () = Web.Window.add_event_listener "popstate" handler in
+
+    Web.Window.add_event_listener "popstate" handler;
+
     fun () -> Web.Window.remove_event_listener "popstate" handler
   in
   Tea_sub.registration "navigation" enableCall
 
 let replaceState url =
-  let _ =
-    Web.Window.History.replace_state' (Js.Json.parseExn "{}") url
-      (Web.Window.get_history ())
-  in
-  ()
+  ignore
+    (Web.Window.History.replace_state' (Js.Json.parseExn "{}") url
+       (Web.Window.get_history ()))
 
 let pushState url =
-  let _ =
-    Web.Window.History.push_state' (Js.Json.parseExn "{}") url
-      (Web.Window.get_history ())
-  in
-  ()
+  ignore
+    (Web.Window.History.push_state' (Js.Json.parseExn "{}") url
+       (Web.Window.get_history ()))
 
 let modifyUrl url =
   Tea_cmd.call (fun _enqueue ->
-      let () = replaceState url in
-      let () = notifyUrlChange () in
+      replaceState url;
+      notifyUrlChange ();
       ())
 
 let newUrl url =
   Tea_cmd.call (fun _enqueue ->
-      let () = pushState url in
-      let () = notifyUrlChange () in
+      pushState url;
+      notifyUrlChange ();
       ())
 
 let go step =
   Tea_cmd.call (fun _enqueue ->
-      let _ = Web.Window.History.go' step (Web.Window.get_history ()) in
-      let () = notifyUrlChange () in
+      ignore (Web.Window.History.go' step (Web.Window.get_history ()));
+      notifyUrlChange ();
       ())
 
 let back step = go (-step)
@@ -72,8 +71,7 @@ let navigationProgram locationToMessage stuff =
     Tea_sub.batch [ subscribe locationToMessage; stuff.subscriptions model ]
   in
 
-  let open! Tea_app in
-  program
+  Tea_app.program
     {
       init;
       update = stuff.update;

@@ -29,20 +29,22 @@ let string_of_error = function
 type header = Header of string * string
 type 'res expect = Expect of bodyType * (response -> ('res, string) result)
 
-type 'msg requestEvents = {
-  onreadystatechange :
-    ('msg Vdom.applicationCallbacks ref ->
-    Web.XMLHttpRequest.event_readystatechange ->
-    unit)
-    option;
-  onprogress :
-    ('msg Vdom.applicationCallbacks ref ->
-    Web.XMLHttpRequest.event_progress ->
-    unit)
-    option;
-}
+module RequestEvents = struct
+    type 'msg t = {
+      onreadystatechange :
+        ('msg Vdom.applicationCallbacks ref ->
+        Web.XMLHttpRequest.event_readystatechange ->
+        unit)
+        option;
+      onprogress :
+        ('msg Vdom.applicationCallbacks ref ->
+        Web.XMLHttpRequest.event_progress ->
+        unit)
+        option;
+    }
 
-let emptyRequestEvents = { onreadystatechange = None; onprogress = None }
+    let empty = { onreadystatechange = None; onprogress = None }
+end
 
 type 'res rawRequest = {
   method' : string;
@@ -55,7 +57,7 @@ type 'res rawRequest = {
 }
 
 type ('msg, 'res) request =
-  | Request of 'res rawRequest * 'msg requestEvents option
+  | Request of 'res rawRequest * 'msg RequestEvents.t option
 
 let expectStringResponse func =
   let open Web.XMLHttpRequest in
@@ -286,6 +288,6 @@ module Progress = struct
             | Error _e -> ()
             | Ok t -> !callbacks.enqueue (toMessage t))
     in
-    let events = match events with None -> emptyRequestEvents | Some e -> e in
+    let events = match events with None -> RequestEvents.empty | Some e -> e in
     Request (request, Some { events with onprogress })
 end

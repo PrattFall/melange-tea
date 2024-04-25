@@ -1,4 +1,5 @@
 open Vdom
+open Vdom.Property
 
 module Node = Web_node
 
@@ -8,6 +9,7 @@ let map = Tea_app.map
 
 (* Nodes *)
 
+let noProp = noProp
 let noNode = noNode
 let text str = text str
 let lazy1 key gen = lazyGen key gen
@@ -302,7 +304,6 @@ let menu ?(key = "") ?(unique = "") props nodes =
 
 (* Properties *)
 
-let noProp = Vdom.noProp
 let id str = prop "id" str
 
 (* `href` is actually an attribute, not a property, but need it here for Elm compat... *)
@@ -340,7 +341,7 @@ let onMsg eventName msg = onMsg eventName msg
 
 let onInputOpt ?(key = "") msg =
   onCB "input" key (fun ev ->
-      match Js.Undefined.toOption ev##target with
+      match Js.Undefined.toOption (Web_event.target ev) with
       | None -> None
       | Some target -> (
           match Js.Undefined.toOption (Node.value target) with
@@ -351,7 +352,7 @@ let onInput ?(key = "") msg = onInputOpt ~key (fun ev -> Some (msg ev))
 
 let onChangeOpt ?(key = "") msg =
   onCB "change" key (fun ev ->
-      match Js.Undefined.toOption ev##target with
+      match Js.Undefined.toOption (Web_event.target ev) with
       | None -> None
       | Some target -> (
           match Js.Undefined.toOption (Node.value target) with
@@ -366,7 +367,7 @@ let onFocus msg = onMsg "focus" msg
 
 let onCheckOpt ?(key = "") msg =
   onCB "change" key (fun ev ->
-      match Js.Undefined.toOption ev##target with
+      match Js.Undefined.toOption (Web_event.target ev) with
       | None -> None
       | Some target -> (
           match Js.Undefined.toOption (Node.checked target) with
@@ -387,8 +388,8 @@ let defaultOptions = { stopPropagation = false; preventDefault = false }
 
 let onWithOptions ~(key : string) eventName (options : options) decoder =
   onCB eventName key (fun event ->
-      if options.stopPropagation then event##stopPropagation () |> ignore;
-      if options.preventDefault then event##preventDefault () |> ignore;
+      if options.stopPropagation then (Web_event.stopPropagation event);
+      if options.preventDefault then (Web_event.preventDefault event);
       event |> Tea_json.Decoder.decodeEvent decoder |> Result.to_option)
 
 let on ~(key : string) eventName decoder =

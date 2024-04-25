@@ -1,26 +1,28 @@
 type position = { x : int; y : int }
 
 let position =
-  let open Tea_json.Decoder in
-  map2 (fun x y -> { x; y }) (field "pageX" int) (field "pageY" int)
+  Tea_json.Decoder.(
+    map2 (fun x y -> { x; y }) (field "pageX" int) (field "pageY" int))
 
 let registerGlobal name key tagger =
   let open Vdom in
   let enableCall callbacks_base =
     let callbacks = ref callbacks_base in
+
     let fn ev =
-      let open Tea_json.Decoder in
-      match decodeEvent position ev with
-      | Error _ -> None
-      | Ok pos -> Some (tagger pos)
+      Tea_json.Decoder.decodeEvent position ev
+      |> Result.to_option |> Option.map tagger
     in
+
     let handler = EventHandlerCallback (key, fn) in
-    let elem = (Web_document.document : Dom.document :> 'a Dom._document Dom.node_like) in
+
+    let elem = Web.Document.node in
+
     let cache = eventHandler_Register callbacks elem name handler in
-    fun () ->
-      let _ = eventHandler_Unregister elem name cache in
-      ()
+
+    fun () -> eventHandler_Unregister elem name cache |> ignore
   in
+
   Tea_sub.registration key enableCall
 
 let clicks ?(key = "") tagger = registerGlobal "click" key tagger

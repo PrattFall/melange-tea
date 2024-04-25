@@ -57,9 +57,9 @@ let programStateWrapper initModel pump shutdown =
   let rec handler msg =
     match !pending with
     | None -> (
-        let () = pending := (Some [] [@explicit_arity]) in
+        pending := (Some [] [@explicit_arity]);
         let newModel = pumperInterface.handleMsg !model msg in
-        let () = model := newModel in
+        model := newModel;
         match !pending with
         | None ->
             failwith
@@ -67,7 +67,7 @@ let programStateWrapper initModel pump shutdown =
                message processing!"
         | ((Some []) [@explicit_arity]) -> pending := None
         | ((Some msgs) [@explicit_arity]) ->
-            let () = pending := None in
+            pending := None;
             List.iter handler (List.rev msgs))
     | ((Some msgs) [@explicit_arity]) ->
         pending := (Some (msg :: msgs) [@explicit_arity])
@@ -87,28 +87,20 @@ let programStateWrapper initModel pump shutdown =
        : 'msg Vdom.applicationCallbacks)
       : 'msg Vdom.applicationCallbacks)
   in
-  let () = callbacks := finalizedCBs in
+  callbacks := finalizedCBs;
 
   let pi_requestShutdown () =
-    let () =
-      callbacks :=
-        {
-          enqueue =
-            (fun _msg -> Js.log "INVALID message enqueued when shut down");
-          on = (fun _ -> ());
-        }
-    in
-    let cmd = shutdown !model in
-    let () = pumperInterface.shutdown cmd in
-    ()
+    callbacks :=
+      {
+        enqueue = (fun _msg -> Js.log "INVALID message enqueued when shut down");
+        on = (fun _ -> ());
+      };
+    pumperInterface.shutdown (shutdown !model)
   in
 
-  let render_string () =
-    let rendered = pumperInterface.render_string !model in
-    rendered
-  in
+  let render_string () = pumperInterface.render_string !model in
 
-  let () = pumperInterface.startup () in
+  pumperInterface.startup ();
 
   makeProgramInterface ~pushMsg:handler ~shutdown:pi_requestShutdown
     ~getHtmlString:render_string
@@ -124,9 +116,8 @@ let programLoop update view subscriptions initModel initCmd = function
         {
           startup =
             (fun () ->
-              let () = Tea_cmd.run callbacks initCmd in
-              let () = handleSubscriptionChange initModel in
-              ());
+              Tea_cmd.run callbacks initCmd;
+              handleSubscriptionChange initModel);
           render_string =
             (fun model ->
               let vdom = view model in
@@ -135,95 +126,89 @@ let programLoop update view subscriptions initModel initCmd = function
           handleMsg =
             (fun model msg ->
               let newModel, cmd = update model msg in
-              let () = Tea_cmd.run callbacks cmd in
-              let () = handleSubscriptionChange newModel in
+              Tea_cmd.run callbacks cmd;
+              handleSubscriptionChange newModel;
               newModel);
           shutdown =
             (fun cmd ->
-              let () = Tea_cmd.run callbacks cmd in
-              let () =
-                oldSub := Tea_sub.run callbacks callbacks !oldSub Tea_sub.none
-              in
-              ());
+              Tea_cmd.run callbacks cmd;
+              oldSub := Tea_sub.run callbacks callbacks !oldSub Tea_sub.none);
         }
-  | ((Some parentNode) [@explicit_arity]) ->
+  | Some parentNode ->
       fun callbacks ->
         let priorRenderedVdom = ref [] in
         let latestModel = ref initModel in
         let nextFrameID = ref None in
+
         let doRender _delta =
-          match !nextFrameID with
-          | None -> ()
-          | ((Some _id) [@explicit_arity]) ->
+          Option.iter
+            (fun _id ->
               let newVdom = [ view !latestModel ] in
               let justRenderedVdom =
                 Vdom.patchVNodesIntoElement callbacks parentNode
                   !priorRenderedVdom newVdom
               in
-              let () = priorRenderedVdom := justRenderedVdom in
-              let () = !callbacks.on Render in
-              nextFrameID := None
+              priorRenderedVdom := justRenderedVdom;
+              !callbacks.on Render;
+              nextFrameID := None)
+            !nextFrameID
         in
+
         let scheduleRender () =
           match !nextFrameID with
           | Some _ -> ()
           | None ->
-              let realtimeRendering = false in
-              if realtimeRendering then
-                let () = nextFrameID := (Some (-1) [@explicit_arity]) in
-                doRender 16
-              else
-                let id = Web.Window.request_animation_frame doRender in
-                let () = nextFrameID := (Some id [@explicit_arity]) in
-                ()
+              (* (* context needed for this *) *)
+              (* let realtimeRendering = false in *)
+              (* if realtimeRendering then ( *)
+              (*   nextFrameID := (Some (-1) [@explicit_arity]); *)
+              (*   doRender 16) *)
+              (* else *)
+              let id = Web.Window.request_animation_frame doRender in
+              nextFrameID := Some id
         in
+
         let clearPnode () =
           while Js.Array.length (child_nodes parentNode) > 0 do
-            match Js.Nullable.toOption (first_child parentNode) with
-            | None -> ()
-            | ((Some firstChild) [@explicit_arity]) ->
-                let _removedChild =
-                  remove_child parentNode firstChild
-                in
-                ()
+            Js.Nullable.toOption (first_child parentNode)
+            |> Option.iter (fun child -> ignore (remove_child parentNode child))
           done
         in
+
         let oldSub = ref Tea_sub.none in
+
         let handleSubscriptionChange model =
           let newSub = subscriptions model in
           oldSub := Tea_sub.run callbacks callbacks !oldSub newSub
         in
+
         let handlerStartup () =
-          let () = clearPnode () in
-          let () = Tea_cmd.run callbacks initCmd in
-          let () = handleSubscriptionChange !latestModel in
-          let () = nextFrameID := (Some (-1) [@explicit_arity]) in
-          let () = doRender 16 in
-          ()
+          clearPnode ();
+          Tea_cmd.run callbacks initCmd;
+          handleSubscriptionChange !latestModel;
+          nextFrameID := (Some (-1) [@explicit_arity]);
+          doRender 16
         in
-        let render_string model =
-          let vdom = view model in
-          let rendered = Vdom.renderToHtmlString vdom in
-          rendered
-        in
+
+        let render_string model = Vdom.renderToHtmlString (view model) in
+
         let handler model msg =
           let newModel, cmd = update model msg in
-          let () = latestModel := newModel in
-          let () = Tea_cmd.run callbacks cmd in
-          let () = scheduleRender () in
-          let () = handleSubscriptionChange newModel in
+          latestModel := newModel;
+          Tea_cmd.run callbacks cmd;
+          scheduleRender ();
+          handleSubscriptionChange newModel;
           newModel
         in
+
         let handlerShutdown cmd =
-          let () = nextFrameID := None in
-          let () = Tea_cmd.run callbacks cmd in
-          let () =
-            oldSub := Tea_sub.run callbacks callbacks !oldSub Tea_sub.none
-          in
-          let () = priorRenderedVdom := [] in
-          let () = clearPnode () in
-          ()
+          nextFrameID := None;
+          Tea_cmd.run callbacks cmd;
+          oldSub := Tea_sub.run callbacks callbacks !oldSub Tea_sub.none;
+          priorRenderedVdom := [];
+          clearPnode ()
         in
+
         {
           startup = handlerStartup;
           render_string;
@@ -233,7 +218,7 @@ let programLoop update view subscriptions initModel initCmd = function
 
 let program =
   ((fun { init; update; view; subscriptions; shutdown } pnode flags ->
-      let () = Web.polyfills () in
+      Web.polyfills ();
       let initModel, initCmd = init flags in
       let opnode = Js.Nullable.toOption pnode in
       let pumpInterface =

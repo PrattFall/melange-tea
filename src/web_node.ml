@@ -36,7 +36,7 @@ external parent_element : Dom.element -> Dom.element Js.nullable
 
 external name : 'a Dom.node_like -> string Js.undefined = "nodeName" [@@mel.get]
 external value : 'a Dom.node_like -> string Js.undefined = "value" [@@mel.get]
-external set_value : 'a Dom.node_like -> string -> unit = "value" [@@mel.set]
+external set_value : 'a Dom.node_like -> string -> unit = "nodeValue" [@@mel.set]
 
 external type' : 'a Dom.node_like -> string Js.undefined = "nodeType"
 [@@mel.get]
@@ -103,15 +103,12 @@ external set_style : style -> string -> string Js.null -> unit = ""
 
 external style : Dom.element -> style = "style" [@@mel.get]
 
-type dom_event = Dom.element Web_event.t
-type dom_event_cb = Dom.element Web_event.cb
-
 external add_event_listener :
-  'a Dom.eventTarget_like -> string -> dom_event_cb -> unit = "addEventListener"
+  'a Dom.eventTarget_like -> string -> ('e Dom.event_like -> unit) -> unit = "addEventListener"
 [@@mel.send]
 
 external remove_event_listener :
-  'a Dom.eventTarget_like -> string -> dom_event_cb -> unit
+  'a Dom.eventTarget_like -> string -> ('e Dom.event_like -> unit) -> unit
   = "removeEventListener"
 [@@mel.send]
 

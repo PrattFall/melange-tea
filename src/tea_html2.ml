@@ -2,6 +2,7 @@
 expect to use frequently will be closer to the top. *)
 
 open Vdom
+open Vdom.Property
 
 module Cmds = Tea_html_cmds
 module Node = Web_node
@@ -12,7 +13,7 @@ let map = Tea_app.map
 
 let text str = text str
 
-let node ?(namespace = "") tagName ?(key = "") ?(unique = "") props nodes =
+let node ?(namespace = "") ?(key = "") ?(unique = "") tagName props nodes =
   fullnode namespace tagName key unique props nodes
 
 let noNode = noNode
@@ -366,9 +367,9 @@ let link ?(key = "") ?(unique = "") props =
 module Attributes = struct
   (** {1 Primitives} *)
 
-  let noProp = Vdom.noProp
-  let style key value = Vdom.style key value
-  let styles s = Vdom.styles s
+  let noProp = Vdom.Property.noProp
+  let style = Vdom.Property.style
+  let styles = Vdom.Property.styles
 
   (** {1 Super common attributes} *)
 
@@ -557,7 +558,7 @@ module Events = struct
 
   let onInputOpt ?(key = "") msg =
     onCB "input" key (fun ev ->
-        match Js.Undefined.toOption ev##target with
+        match Js.Undefined.toOption (Web_event.target ev) with
         | None -> None
         | Some target -> (
             match Js.Undefined.toOption (Node.value target) with
@@ -568,7 +569,7 @@ module Events = struct
 
   let onCheckOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
-        match Js.Undefined.toOption ev##target with
+        match Js.Undefined.toOption (Web_event.target ev) with
         | None -> None
         | Some target -> (
             match Js.Undefined.toOption (Node.checked target) with
@@ -579,7 +580,7 @@ module Events = struct
 
   let onChangeOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
-        match Js.Undefined.toOption ev##target with
+        match Js.Undefined.toOption (Web_event.target ev) with
         | None -> None
         | Some target -> (
             match Js.Undefined.toOption (Node.value target) with

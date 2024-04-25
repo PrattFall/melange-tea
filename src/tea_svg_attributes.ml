@@ -1,4 +1,4 @@
-open Vdom
+open Vdom.Property
 
 (* Regular attributes *)
 
