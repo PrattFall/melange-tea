@@ -1,7 +1,7 @@
 type ('flags, 'model, 'msg) navigationProgram = {
   init : 'flags -> Web.Location.location -> 'model * 'msg Tea_cmd.t;
   update : 'model -> 'msg -> 'model * 'msg Tea_cmd.t;
-  view : 'model -> 'msg Vdom.t;
+  view : 'model -> 'msg Vdom.Node.t;
   subscriptions : 'model -> 'msg Tea_sub.t;
   shutdown : 'model -> 'msg Tea_cmd.t;
 }
