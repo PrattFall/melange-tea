@@ -8,59 +8,55 @@ type 'msg applicationCallbacks = {
   on : 'msg systemMessage -> unit;
 }
 
-type 'msg eventHandler =
-  | EventHandlerCallback of string * (Dom.event -> 'msg option)
-  | EventHandlerMsg of 'msg
+module EventHandler = struct
+  type 'msg t =
+    | EventHandlerCallback of string * (Dom.event -> 'msg option)
+    | EventHandlerMsg of 'msg
 
-type 'msg eventCache = {
-  handler : Dom.event -> unit;
-  cb : (Dom.event -> 'msg option) ref;
-}
+  type 'msg cache = {
+    handler : Dom.event -> unit;
+    cb : (Dom.event -> 'msg option) ref;
+  }
 
-let emptyEventCB _ev : 'e Web_event.callback option = None
-let eventHandler callbacks cb ev = Option.iter !callbacks.enqueue (!cb ev)
+  let emptyEventCB _ev : 'e Web_event.callback option = None
+  let eventHandler callbacks cb ev = Option.iter !callbacks.enqueue (!cb ev)
 
-let eventHandler_GetCB = function
-  | EventHandlerCallback (_, cb) -> cb
-  | EventHandlerMsg (msg : 'msg) -> fun _ev -> Some msg
+  let get_callback = function
+    | EventHandlerCallback (_, cb) -> cb
+    | EventHandlerMsg (msg : 'msg) -> fun _ev -> Some msg
 
-let compareEventHandlerTypes (left : 'msg eventHandler) :
-    'msg eventHandler -> bool = function
-  | EventHandlerCallback (cb, _) -> (
-      match left with
-      | EventHandlerCallback (lcb, _) when cb = lcb -> true
-      | _ -> false)
-  | EventHandlerMsg msg -> (
-      match left with
-      | EventHandlerMsg lmsg when msg = lmsg -> true
-      | _ -> false)
+  let compareEventHandlerTypes left right =
+    match (left, right) with
+    | EventHandlerCallback (lcb, _), EventHandlerCallback (rcb, _) -> lcb = rcb
+    | EventHandlerMsg lmsg, EventHandlerMsg rmsg -> lmsg = rmsg
+    | _ -> false
 
-let eventHandler_Register callbacks elem name handlerType =
-  let cb = ref (eventHandler_GetCB handlerType) in
-  let handler = eventHandler callbacks cb in
-  Web_node.add_event_listener elem name handler;
-  Some { handler; cb }
+  let register callbacks elem name handlerType =
+    let cb = ref (get_callback handlerType) in
+    let handler = eventHandler callbacks cb in
+    Web_node.add_event_listener elem name handler;
+    Some { handler; cb }
 
-let eventHandler_Unregister (elem : 'a Dom.node_like) (event_name : string) :
-    'msg eventCache option -> 'msg eventCache option = function
-  | None -> None
-  | Some cache ->
-      Web_node.remove_event_listener elem event_name cache.handler;
-      None
+  let unregister (elem : 'a Dom.node_like) (event_name : string) :
+      'msg cache option -> 'msg cache option = function
+    | None -> None
+    | Some cache ->
+        Web_node.remove_event_listener elem event_name cache.handler;
+        None
 
-let eventHandler_Mutate callbacks elem oldName newName oldHandlerType
-    newHandlerType oldCache newCache =
-  match !oldCache with
-  | None ->
-      newCache := eventHandler_Register callbacks elem newName newHandlerType
-  | Some oldcache ->
-      if oldName = newName then (
-        newCache := !oldCache;
-        if compareEventHandlerTypes oldHandlerType newHandlerType then ()
-        else oldcache.cb := eventHandler_GetCB newHandlerType)
-      else (
-        oldCache := eventHandler_Unregister elem oldName !oldCache;
-        newCache := eventHandler_Register callbacks elem newName newHandlerType)
+  let mutate callbacks elem oldName newName oldHandlerType newHandlerType
+      oldCache newCache =
+    match !oldCache with
+    | None -> newCache := register callbacks elem newName newHandlerType
+    | Some oldcache ->
+        if oldName = newName then (
+          newCache := !oldCache;
+          if compareEventHandlerTypes oldHandlerType newHandlerType then ()
+          else oldcache.cb := get_callback newHandlerType)
+        else (
+          oldCache := unregister elem oldName !oldCache;
+          newCache := register callbacks elem newName newHandlerType)
+end
 
 module Property = struct
   type 'msg t =
@@ -69,7 +65,7 @@ module Property = struct
     (* namespace, key, value *)
     | Attribute of string * string * string
     | Data of string * string
-    | Event of string * 'msg eventHandler * 'msg eventCache option ref
+    | Event of string * 'msg EventHandler.t * 'msg EventHandler.cache option ref
     | Style of (string * string) list
 
   let empty = NoProp
@@ -111,7 +107,7 @@ module Property = struct
         Js.log ("TODO:  Add Data Unhandled", k, v);
         failwith "TODO:  Add Data Unhandled"
     | Event (name, handlerType, cache) ->
-        cache := eventHandler_Register callbacks elem name handlerType
+        cache := EventHandler.register callbacks elem name handlerType
     | Style s ->
         List.iter (fun (k, v) -> Web_node.set_style_property elem k (Some v)) s
 
@@ -123,7 +119,7 @@ module Property = struct
         Js.log ("TODO:  Remove Data Unhandled", k, v);
         failwith "TODO:  Remove Data Unhandled"
     | Event (name, _, cache) ->
-        cache := eventHandler_Unregister elem name !cache
+        cache := EventHandler.unregister elem name !cache
     | Style s ->
         List.iter (fun (k, _) -> Web_node.set_style_property elem k None) s
 
@@ -182,7 +178,7 @@ module Property = struct
         apply callbacks elem (idx + 1) oldRest newRest
     | ( Event (oldName, oldHandlerType, oldCache) :: oldRest,
         Event (newName, newHandlerType, newCache) :: newRest ) ->
-        eventHandler_Mutate callbacks elem oldName newName oldHandlerType
+        EventHandler.mutate callbacks elem oldName newName oldHandlerType
           newHandlerType oldCache newCache;
         apply callbacks elem (idx + 1) oldRest newRest
     | (Style oldS as oldProp) :: oldRest, (Style newS as newProp) :: newRest ->
