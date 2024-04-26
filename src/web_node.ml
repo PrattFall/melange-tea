@@ -8,7 +8,8 @@ external _first_child : 'a Dom.node_like -> Dom.element Js.nullable
 
 let first_child node = Js.Nullable.toOption (_first_child node)
 
-external _value : 'a Dom.node_like -> string Js.undefined = "nodeValue" [@@mel.get]
+external _value : 'a Dom.node_like -> string Js.undefined = "nodeValue"
+[@@mel.get]
 
 let value node = Js.Undefined.toOption (_value node)
 
@@ -54,20 +55,6 @@ let remove_attribute ?(namespace = "") elem key =
   | "" -> _remove_attribute elem key
   | ns -> _remove_attribute_ns elem ns key
 
-type style =
-  < setProperty : Web_json.t Js.undefined
-        [@mel.get] (* TODO:  Revamp this and the next line... *)
-  ; setProperty__ : string -> string Js.null -> string Js.null -> unit
-        [@mel.meth] >
-  Js.t
-
-external get_style : style -> string -> string Js.null = "" [@@mel.get_index]
-
-external set_style : style -> string -> string Js.null -> unit = ""
-[@@mel.set_index]
-
-external style : Dom.element -> style = "style" [@@mel.get]
-
 external add_event_listener :
   'a Dom.eventTarget_like -> string -> ('e Dom.event_like -> unit) -> unit
   = "addEventListener"
@@ -83,16 +70,22 @@ external prop : 'a Dom.element_like -> 'k -> 'v = "" [@@mel.get_index]
 external set_prop : 'a Dom.element_like -> 'k -> 'v -> unit = ""
 [@@mel.set_index]
 
-let set_style_property ?(priority = false) elem key value =
-  let elem_style = style elem in
+external style : Dom.element -> Dom.cssStyleDeclaration = "style" [@@mel.get]
 
-  match Js.Undefined.toOption elem_style##setProperty with
-  | None ->
-      set_style elem_style key value
-      (* TODO:  Change this to setAttribute sometime, maybe... *)
-  | Some _valid ->
-      elem_style##setProperty__ key value
-        (if priority then Js.Null.return "important" else Js.Null.empty)
+external get_style : Dom.cssStyleDeclaration -> string -> string Js.null = ""
+[@@mel.get_index]
+
+external set_style : Dom.cssStyleDeclaration -> string -> string Js.null -> unit
+  = ""
+[@@mel.set_index]
+
+external _set_property :
+  Dom.cssStyleDeclaration -> string -> string Js.null -> string -> unit
+  = "setProperty"
+[@@mel.send]
+
+let set_style_property ?(priority = "") elem prop_name value =
+  _set_property (style elem) prop_name (Js.Null.fromOption value) priority
 
 external focus : 'a Dom.element_like -> unit = "focus" [@@mel.send]
 

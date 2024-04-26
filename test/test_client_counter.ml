@@ -11,21 +11,22 @@ let update model = function
   | Reset -> init
   | Set v -> v
 
-let view_button title msg = button [ onClick msg ] [ text title ]
+let view_button title msg = div [] [ button [ onClick msg ] [ text title ] ]
 
 let view model =
   div []
     [
-      span [ style "text-weight" "bold" ] [ text (string_of_int model) ];
-      br [];
-      (if model > 10 then div [] [ text "TOO BIG" ] else noNode);
+      span
+        [
+          (if model > 10 then
+             styles [ ("color", "purple"); ("font-weight", "bold") ]
+          else styles [ ("font-weight", "bold"); ("text-decoration", "underline") ]);
+        ]
+        [ text (string_of_int model) ];
       view_button "Increment" Increment;
-      br [];
       view_button "Decrement" Decrement;
-      br [];
       view_button "Set to 42" (Set 42);
-      br [];
-      (if model <> 0 then view_button "Reset" Reset else noNode);
+      (if model <> init then view_button "Reset" Reset else noNode);
     ]
 
-let main = beginnerProgram { model = init ; update; view }
+let main = beginnerProgram { model = init; update; view }

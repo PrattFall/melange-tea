@@ -155,7 +155,7 @@ let patchVNodesOnElems_PropertiesApply_Add callbacks elem = function
       cache := eventHandler_Register callbacks elem name handlerType
   | Property.Style s ->
       List.fold_left
-        (fun () (k, v) -> Web_node.set_style_property elem k (Js.Null.return v))
+        (fun () (k, v) -> Web_node.set_style_property elem k (Some v))
         () s
 
 let patchVNodesOnElems_PropertiesApply_Remove elem = function
@@ -170,7 +170,7 @@ let patchVNodesOnElems_PropertiesApply_Remove elem = function
       cache := eventHandler_Unregister elem name !cache
   | Property.Style s ->
       List.fold_left
-        (fun () (k, _) -> Web_node.set_style_property elem k Js.Null.empty)
+        (fun () (k, _) -> Web_node.set_style_property elem k None)
         () s
 
 let patchVNodesOnElems_PropertiesApply_RemoveAdd callbacks elem oldProp newProp
@@ -190,18 +190,17 @@ let patchVNodesOnElems_PropertiesApply_Mutate elem oldProp = function
       failwith "TODO:  Mutate Data Unhandled"
   | Property.Event (_, _, _) ->
       failwith "This will never be called because it is gated"
-  | Property.Style s -> (
+  | Property.Style newStyles -> (
       match oldProp with
-      | Property.Style oldS ->
-          List.fold_left2
-            (fun () (ok, ov) (nk, nv) ->
-              if ok = nk then
-                if ov = nv then ()
-                else Web_node.set_style_property elem nk (Js.Null.return nv)
-              else (
-                Web_node.set_style_property elem ok Js.Null.empty;
-                Web_node.set_style_property elem nk (Js.Null.return nv)))
-            () oldS s
+      | Property.Style oldStyles ->
+          (* Works for now  *)
+          List.iter
+            (fun (key, _) -> Web.Node.set_style_property elem key None)
+            oldStyles;
+          List.iter
+            (fun (key, value) ->
+              Web.Node.set_style_property elem key (Some value))
+            newStyles
       | _ ->
           failwith
             "Passed a non-Style to a new Style as a Mutations while the old \
