@@ -14,8 +14,10 @@ type 'model debug_model = {
   show_details : bool;
 }
 
+type ('msg, 'model) update = 'model -> 'msg -> 'model * 'msg Tea_cmd.t
+
 let debug (string_of_msg : 'msg -> string)
-    (update : 'model -> 'msg -> 'model * 'msg Tea_cmd.t)
+    (update : ('msg, 'model) update)
     (view : 'model -> 'msg Vdom.Node.t)
     (subscriptions : 'model -> 'msg Tea_sub.t)
     (shutdown : 'model -> 'msg Tea_cmd.t) :

@@ -1,24 +1,28 @@
 open Web_node
 
+type ('msg, 'model) cmd_update = 'model -> 'msg -> 'model * 'msg Tea_cmd.t
+type ('msg, 'model) update = 'model -> 'msg -> 'model
+type ('msg, 'model) view = 'model -> 'msg Vdom.Node.t
+
 type ('flags, 'model, 'msg) program = {
   init : 'flags -> 'model * 'msg Tea_cmd.t;
-  update : 'model -> 'msg -> 'model * 'msg Tea_cmd.t;
-  view : 'model -> 'msg Vdom.Node.t;
+  update : ('msg, 'model) cmd_update;
+  view : ('msg, 'model) view;
   subscriptions : 'model -> 'msg Tea_sub.t;
   shutdown : 'model -> 'msg Tea_cmd.t;
 }
 
 type ('flags, 'model, 'msg) standardProgram = {
   init : 'flags -> 'model * 'msg Tea_cmd.t;
-  update : 'model -> 'msg -> 'model * 'msg Tea_cmd.t;
-  view : 'model -> 'msg Vdom.Node.t;
+  update : ('msg, 'model) cmd_update;
+  view : ('msg, 'model) view;
   subscriptions : 'model -> 'msg Tea_sub.t;
 }
 
 type ('model, 'msg) beginnerProgram = {
   model : 'model;
-  update : 'model -> 'msg -> 'model;
-  view : 'model -> 'msg Vdom.Node.t;
+  update : ('msg, 'model) update;
+  view : ('msg, 'model) view;
 }
 
 type ('model, 'msg) pumpInterface = {
