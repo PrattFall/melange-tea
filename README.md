@@ -1,33 +1,66 @@
 # Melange-TEA
 
-## Reason to Use
-
-- You have the entire power of the OCaml language at your disposal to Javascript.
-- You have access to the highly optimized OCaml ecosystem if necessary.
-- You have access to the entire Javascript eco-system through a type-safe interface if necessary.
-- Open license, same as Melange itself.
-
 ## Description
 
-This is a library for OCaml-via-melange (though in the future to support native compilation for back-end template generation) that follows TEA/[The Elm Architecture](https://guide.elm-lang.org/architecture/) as I see it in various incarnations.
+Melange-TEA is an OCaml library that allows the creation of dynamic web frontends using Melange.
 
-You can read more about it [here](http://blog.overminddl1.com/tags/melange-tea/).
+For now I am attempting to follow TEA/[The Elm Architecture](https://guide.elm-lang.org/architecture/) as a base (as this project is a fork of [bucklescript-tea](https://github.com/OvermindDL1/bucklescript-tea). However, I will likely make changes to better fit the OCaml ecosystem.
 
-Currently included and planned forms are:
+## Goals of the project
 
-- [X] Elm API: Following the Elm API as closely as OCaml allows. Converting code back and forth between Elm and OCaml should be made as easy as possible and there exists both a [converter](https://github.com/darklang/philip2), as well as [documentation](https://github.com/darklang/philip2#how-to-port-your-project) for that process. It may be good to 'version' the API, break it out from the latest Elm API to follow different versions of the Elm API behind versioned modules that can be easily opened. This is not done yet but is a 'nice-to-have' goal before hitting version 1.0.0 to ensure even better API stability. Currently the `update` callback passes the `model` first instead of second as it makes matching on the message in a far more expected way, comments on reversing this back to Elm's way?
-- [ ] WebComponent: TEA is a wonderful way to reason about information flow and view generation, however the implementation in Elm is very broken when wanting to combine it with WebComponents due to lacking a few ways to listen for data changes (which also fits very well into the TEA `update` model, just Elm has not done it as of the date of this writing). This may be an extension on the above Elm API however it is possible that it may require breaking away from that API.
+- Make the API close enough to Elm to be able to port code easily
+- Play to the strengths of OCaml to add features Elm could not easily provide
+- Provide a language-agnostic (I.E. OCaml vs Reason) solution for creating frontend web applications
+
+## Bucklescript-TEA's planned features that are still on the table
+
+- [X] Elm API: Following the Elm API as closely as OCaml allows.
 - [ ] OCamlized-TEA: The Elm API is succinct, but highly inefficient in the amount of allocations it causes, though this is not necessary it would be nice to have a replacement API that takes effort to reduce the amount of allocations. Most real-world use would get near nothing out of this but for a few cases it would be quite useful to have an overhaul of the Virtual-DOM declaration style.
 - [ ] React: It would also be nice to have a React back-end for easier integration with React projects, both into and out of this component. This should not have any breaking change over the Elm API but would just be an extension on it.
-- [ ] Binding: Experiment with a method to build a vdom once then 'bind' to various parts of it. This will not follow TEA so precisely but the TEA style central event loop will still exist, this style will be quite different but may be even more simple while allowing even faster DOM diffing and updating.
 
-With the above any PR's are welcome to clean up code, flesh out functionality, and until we hit 1.0.0 break API compatibility if necessary (but as minimally as possible). 1.0.0 should be complete when the Elm API style is followed as closely as possible and becomes as optimized as it can become while following the API, once that is set then API breaking changes will only happen to match Elm updates. PR's are also welcome to add support to other systems such as Yarn as long as it does not break the base NPM packaging system.
+## Changes
+
+### Already Done
+
+- Usage of `melange.dom` types and `[@@mel.send]` vs bucklescript-tea's method-based approach
+    - Doesn't rely on not-currently-documented features from Melange
+    - Fits more with the functional style I'm going for
+- Removed `Tea_result` as we are far past the OCaml version where `result` was added with Melange
+- Removed the Reason.ml code since it was generated anyway and this library should work with both OCaml and Reason syntax without it
+- Changed the `test` code to use Vite for rendering
+
+### Proposed
+
+- Copy Elm's `Browser` module structure
+- Remove the XMLHttpRequest-related code or at least port it to fetch (either custom or using `melange-fetch`)
+- Replace Tea.Html with Tea.Html2's code. Fully embrace the current Elm architecture for now before making other changes.
+    - This will break some people's older projects if they update to melange + melange-tea
+- Add Style and Attribute constructors (An example would be the `feliz` project for Fable)
+    - Removes the need for so many string literals everywhere (fewer chances of misspelling mistakes and such)
+- Allow optional interop/wrapping of React components
+    - If there's a way to do it I'd also like Preact and/or WebComponents as well
+- Refactor, refactor, refactor
 
 ## Usage
 
-### Example project
+This project is currently not up on opam. If you want to run the examples in `test` you can clone the repo and do the following:
 
-Once you have your melange project set up and the dependencies configured as above then lets make a new TEA module, the Counter, as is traditional in Elm tutorials, this file will be named `counter.ml` in your `src` directory for this example. Code is described via inline comments:
+Install dependencies with
+
+```bash
+npm i
+npm run init
+```
+
+Then run the project using
+
+```bash
+npm run dev
+```
+
+To change which test you are looking at, you can change the module being called in `test/test_client.ml`
+
+### Example project
 
 ```ocaml
 (* This line opens the Tea.App modules into the current scope for Program access functions and types *)
@@ -42,7 +75,6 @@ type msg =
   | Decrement  (* This will be our message to decrement the counter *)
   | Reset      (* This will be our message to reset the counter to 0 *)
   | Set of int (* This will be our message to set the counter to a specific value *)
-  [@@mel.deriving {accessors}] (* This is a nice quality-of-life addon from melange, it will generate function names for each constructor name, optional, but nice to cut down on code, this is unused in this example but good to have regardless *)
 
 (* This is optional for such a simple example, but it is good to have an `init` function to define your initial model default values, the model for Counter is just an integer *)
 let init () = 4
@@ -57,7 +89,7 @@ let update model = function (* These should be simple enough to be self-explanat
 (* This is just a helper function for the view, a simple function that returns a button based on some argument *)
 let view_button title msg =
   button
-    [ onClick msg
+    [ Events.onClick msg
     ]
     [ text title
     ]
@@ -68,8 +100,8 @@ let view model =
   div
     []
     [ span
-        [ style "text-weight" "bold" ]
-        [ text (string_of_int model) ]
+        [ Attributes.style "text-weight" "bold" ]
+        [ Attributes.text (string_of_int model) ]
     ; br []
     ; view_button "Increment" Increment
     ; br []
@@ -83,9 +115,7 @@ let view model =
 (* This is the main function, it can be named anything you want but `main` is traditional.
   The Program returned here has a set of callbacks that can easily be called from
   melange or from javascript for running this main attached to an element,
-  or even to pass a message into the event loop.  You can even expose the
-  constructors to the messages to javascript via the above [@@mel.deriving {accessors}]
-  attribute on the `msg` type or manually, that way even javascript can use it safely. *)
+  or even to pass a message into the event loop. *)
 let main =
   beginnerProgram { (* The beginnerProgram just takes a set model state and the update and view functions *)
     model = init (); (* Since model is a set value here, we call our init function to generate that value *)
@@ -96,12 +126,6 @@ let main =
 
 If anything is typed wrong than the OCaml type checker will catch it and advise. Compilation times are wonderfully fast, probably faster than about any other compile-to-javascript language that you will come across.
 
-To use this from javascript (with your bundler of choice) you can just do:
-
 ```javascript
   var app = require("src/counter.ml").main(document.getElementById("my-element"));
 ```
-
-And if you need to shut it down or pass it a message or so then you can do so via the `app` variable, or feel free to not assign it to a variable as well.
-
-For further examples see the [melange-testing](https://github.com/OvermindDL1/melange-testing) project for now until a full example set up is built.
