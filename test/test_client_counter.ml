@@ -17,10 +17,16 @@ let view model =
   div []
     [
       span
+        (if model < 0 then [ style "font-style" "italic" ]
+         else [ style "text-decoration" "strikethrough"; class' "testing" ])
+        [ text "Testing a thing" ];
+      span
         [
           (if model > 10 then
              styles [ ("color", "purple"); ("font-weight", "bold") ]
-          else styles [ ("font-weight", "bold"); ("text-decoration", "underline") ]);
+           else
+             styles
+               [ ("font-weight", "bold"); ("text-decoration", "underline") ]);
         ]
         [ text (string_of_int model) ];
       view_button "Increment" Increment;

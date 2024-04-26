@@ -128,16 +128,11 @@ module Property = struct
     apply_to_element callbacks elem newProp
 
   let mutate_on_element elem oldProp = function
-    | NoProp ->
-        failwith
-          "This should never be called as all entries through NoProp are gated."
     | RawProp (k, v) -> Web_node.set_prop elem k v
     | Attribute (namespace, k, v) -> Web_node.set_attribute ~namespace elem k v
     | Data (k, v) ->
         Js.log ("TODO:  Mutate Data Unhandled", k, v);
         failwith "TODO:  Mutate Data Unhandled"
-    | Event (_, _, _) ->
-        failwith "This will never be called because it is gated"
     | Style newStyles -> (
         match oldProp with
         | Style oldStyles ->
@@ -153,6 +148,8 @@ module Property = struct
             failwith
               "Passed a non-Style to a new Style as a Mutations while the old \
                Style is not actually a style!")
+    | _ ->
+        failwith "This will never be called because it is gated"
 
   let rec apply callbacks elem idx oldProperties newProperties =
     match (oldProperties, newProperties) with
@@ -206,6 +203,14 @@ module DomNode = struct
     { namespace; tag_name; key; unique; props; vdoms }
 
   let children n = n.vdoms
+
+  let replace elem oldChild newChild =
+    ignore (Web_node.insert_before elem newChild oldChild);
+    ignore (Web_node.remove_child elem oldChild)
+
+  let flip elem first second =
+    ignore (Web_node.remove_child elem second);
+    ignore (Web_node.insert_before elem second first)
 end
 
 module LazyGen = struct
@@ -215,7 +220,8 @@ module LazyGen = struct
     cache : 'container ref;
   }
 
-  let make key gen cache = { key; gen; cache; }
+  let make key gen cache = { key; gen; cache }
+  let equals g1 g2 = g1.key = g2.key
 end
 
 module Node = struct
@@ -224,7 +230,7 @@ module Node = struct
     | Text of string
     | Node of ('msg, 'msg t) DomNode.t
     (* key, gen, cache *)
-    | LazyGen of string * (unit -> 'msg t) * 'msg t ref
+    | LazyGen of 'msg t LazyGen.t
     (* tagger, vdom *)
     | Tagger of
         ('msg applicationCallbacks ref -> 'msg applicationCallbacks ref)
@@ -240,7 +246,7 @@ module Node = struct
   let node ?(namespace = "") ?(key = "") ?(unique = "") tagName props vdoms =
     fullnode namespace tagName key unique props vdoms
 
-  let lazyGen key fn = LazyGen (key, fn, ref empty)
+  let lazyGen key fn = LazyGen (LazyGen.make key fn (ref empty))
 
   let rec to_string = function
     | CommentNode s -> "<!-- " ^ s ^ " -->"
@@ -259,7 +265,7 @@ module Node = struct
             n.tag_name;
             ">";
           ]
-    | LazyGen (_, gen, _) -> to_string (gen ())
+    | LazyGen lzy -> to_string (lzy.gen ())
     | Tagger (_, vdom) -> to_string vdom
 
   let apply_properties callbacks elem oldProperties newProperties =
@@ -289,8 +295,7 @@ module Node = struct
     | Node newNode ->
         let oldChild = elems.(idx) in
         let newChild = create_dom_node callbacks newNode in
-        ignore (Web_node.insert_before elem newChild oldChild);
-        ignore (Web_node.remove_child elem oldChild)
+        DomNode.replace elem oldChild newChild
     | _ ->
         failwith
           "Node replacement should never be passed anything but a node itself"
@@ -299,9 +304,9 @@ module Node = struct
     | CommentNode s -> Web.Document.create_comment s
     | Text text -> Web.Document.create_text_node text
     | Node newNode -> create_dom_node callbacks newNode
-    | LazyGen (_, newGen, newCache) ->
-        let vdom = newGen () in
-        newCache := vdom;
+    | LazyGen newLazy ->
+        let vdom = newLazy.gen () in
+        newLazy.cache := vdom;
         create_element callbacks vdom
     | Tagger (tagger, vdom) -> create_element (tagger callbacks) vdom
 
@@ -349,39 +354,37 @@ module Node = struct
            let child = elems.(idx) in
            Web_node.set_value child newText);
         patch_nodes callbacks elem elems (idx + 1) oldRest newRest
-    | ( LazyGen (oldKey, _, oldCache) :: oldRest,
-        LazyGen (newKey, newGen, newCache) :: newRest ) -> (
-        if oldKey = newKey then (
-          newCache := !oldCache;
+    | LazyGen oldLazy :: oldRest, LazyGen newLazy :: newRest -> (
+        if LazyGen.equals oldLazy newLazy then (
+          newLazy.cache := !(oldLazy.cache);
           patch_nodes callbacks elem elems (idx + 1) oldRest newRest)
         else
           match (oldRest, newRest) with
-          | ( LazyGen (olderKey, _, _) :: olderRest,
-              LazyGen (newerKey, _, _) :: newerRest )
-            when olderKey = newKey && oldKey = newerKey ->
+          | LazyGen olderLazy :: olderRest, LazyGen newerLazy :: newerRest
+            when LazyGen.equals olderLazy newLazy
+                 && LazyGen.equals oldLazy newerLazy ->
               let firstChild = elems.(idx) in
               let secondChild = elems.(idx + 1) in
-              ignore (Web_node.remove_child elem secondChild);
-              ignore (Web_node.insert_before elem secondChild firstChild);
+              DomNode.flip elem firstChild secondChild;
               patch_nodes callbacks elem elems (idx + 2) olderRest newerRest
-          | LazyGen (olderKey, _, olderCache) :: olderRest, _
-            when olderKey = newKey ->
+          | LazyGen olderLazy :: olderRest, _
+            when LazyGen.equals olderLazy newLazy ->
               let oldChild = elems.(idx) in
               ignore (Web_node.remove_child elem oldChild);
-              let oldVdom = !olderCache in
-              newCache := oldVdom;
+              let oldVdom = !(olderLazy.cache) in
+              newLazy.cache := oldVdom;
               patch_nodes callbacks elem elems (idx + 1) olderRest newRest
-          | _, LazyGen (newerKey, _, _) :: _ when newerKey = oldKey ->
+          | _, LazyGen newerLazy :: _ when LazyGen.equals newerLazy oldLazy ->
               let oldChild = elems.(idx) in
-              let newVdom = newGen () in
-              newCache := newVdom;
+              let newVdom = newLazy.gen () in
+              newLazy.cache := newVdom;
               let newChild = create_element callbacks newVdom in
               ignore (Web_node.insert_before elem newChild oldChild);
               patch_nodes callbacks elem elems (idx + 1) oldVNodes newRest
           | _ ->
-              let oldVdom = !oldCache in
-              let newVdom = newGen () in
-              newCache := newVdom;
+              let oldVdom = !(oldLazy.cache) in
+              let newVdom = newLazy.gen () in
+              newLazy.cache := newVdom;
               patch_nodes callbacks elem elems idx (oldVdom :: oldRest)
                 (newVdom :: newRest))
     | Node oldNode :: oldRest, Node newNode :: newRest -> (
@@ -397,8 +400,7 @@ module Node = struct
                  && DomNode.equals oldNode newerNode ->
               let firstChild = elems.(idx) in
               let secondChild = elems.(idx + 1) in
-              ignore (Web_node.remove_child elem secondChild);
-              ignore (Web_node.insert_before elem secondChild firstChild);
+              DomNode.flip elem firstChild secondChild;
               patch_nodes callbacks elem elems (idx + 2) olderRest newerRest
           | Node olderNode :: olderRest, _ when DomNode.equals olderNode newNode
             ->
@@ -418,8 +420,7 @@ module Node = struct
     | _ :: oldRest, newNode :: newRest ->
         let oldChild = elems.(idx) in
         let newChild = create_element callbacks newNode in
-        ignore (Web_node.insert_before elem newChild oldChild);
-        ignore (Web_node.remove_child elem oldChild);
+        DomNode.replace elem oldChild newChild;
         patch_nodes callbacks elem elems (idx + 1) oldRest newRest
 
   let patch_nodes_into_element callbacks elem oldVNodes newVNodes =
