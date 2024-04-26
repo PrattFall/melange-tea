@@ -17,8 +17,8 @@ let view model =
   div []
     [
       span
-        (if model < 0 then [ style "font-style" "italic" ]
-         else [ style "text-decoration" "strikethrough"; class' "testing" ])
+        (if model >= 0 then [ style "font-style" "italic" ]
+         else [ style "color" "green"; class' "testing" ])
         [ text "Testing a thing" ];
       span
         [

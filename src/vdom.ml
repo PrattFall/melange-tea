@@ -78,6 +78,16 @@ module Property = struct
   let styles s = Style s
   let mapEmpty props = List.map (fun _ -> empty) props
 
+  let equals x y =
+    match (x, y) with
+    | NoProp, NoProp -> true
+    | RawProp (k1, _), RawProp (k2, _) -> k1 = k2
+    | Attribute (ns1, k1, _), Attribute (ns2, k2, _) -> ns1 = ns2 && k1 = k2
+    | Data (k1, _), Data (k2, _) -> k1 = k2
+    | Event (n1, h1, _), Event (n2, h2, _) -> n1 = n2 && h1 = h2
+    | Style _, Style _ -> true
+    | _ -> false
+
   let to_string = function
     | RawProp (k, v) -> String.concat "" [ " "; k; "=\""; v; "\"" ]
     | Attribute (_, k, v) -> String.concat "" [ " "; k; "=\""; v; "\"" ]
@@ -148,42 +158,35 @@ module Property = struct
             failwith
               "Passed a non-Style to a new Style as a Mutations while the old \
                Style is not actually a style!")
-    | _ ->
-        failwith "This will never be called because it is gated"
+    | _ -> ()
+  (* failwith "This will never be called because it is gated" *)
 
-  let rec apply callbacks elem idx oldProperties newProperties =
-    match (oldProperties, newProperties) with
-    | [], [] -> true
-    | [], _ :: _ -> false
-    | _ :: _, [] -> false
-    | NoProp :: oldRest, NoProp :: newRest ->
-        apply callbacks elem (idx + 1) oldRest newRest
-    | ( (RawProp (oldK, oldV) as oldProp) :: oldRest,
-        (RawProp (newK, newV) as newProp) :: newRest ) ->
-        if oldK = newK && oldV = newV then ()
-        else mutate_on_element elem oldProp newProp;
-        apply callbacks elem (idx + 1) oldRest newRest
-    | ( (Attribute (oldNS, oldK, oldV) as oldProp) :: oldRest,
-        (Attribute (newNS, newK, newV) as newProp) :: newRest ) ->
-        if oldNS = newNS && oldK = newK && oldV = newV then ()
-        else mutate_on_element elem oldProp newProp;
-        apply callbacks elem (idx + 1) oldRest newRest
-    | ( (Data (oldK, oldV) as oldProp) :: oldRest,
-        (Data (newK, newV) as newProp) :: newRest ) ->
-        if oldK = newK && oldV = newV then ()
-        else mutate_on_element elem oldProp newProp;
-        apply callbacks elem (idx + 1) oldRest newRest
-    | ( Event (oldName, oldHandlerType, oldCache) :: oldRest,
-        Event (newName, newHandlerType, newCache) :: newRest ) ->
-        EventHandler.mutate callbacks elem oldName newName oldHandlerType
-          newHandlerType oldCache newCache;
-        apply callbacks elem (idx + 1) oldRest newRest
-    | (Style oldS as oldProp) :: oldRest, (Style newS as newProp) :: newRest ->
-        if oldS = newS then () else mutate_on_element elem oldProp newProp;
-        apply callbacks elem (idx + 1) oldRest newRest
-    | oldProp :: oldRest, newProp :: newRest ->
-        replace_on_element callbacks elem oldProp newProp;
-        apply callbacks elem (idx + 1) oldRest newRest
+  let apply callbacks elem _idx oldProperties newProperties =
+    let updatedNew, created =
+      List.partition
+        (fun a -> List.exists (equals a) oldProperties)
+        newProperties
+    in
+
+    let deletable =
+      List.filter
+        (fun a -> not (List.exists (equals a) newProperties))
+        oldProperties
+    in
+
+    let updated =
+      updatedNew
+      |> List.map (fun newProp ->
+             List.find_opt (equals newProp) oldProperties
+             |> Option.map (fun oldProp -> (oldProp, newProp)))
+      |> List.map Option.to_list |> List.flatten
+    in
+
+    List.iter (remove_from_element elem) deletable;
+    List.iter
+      (fun (oldProp, newProp) -> mutate_on_element elem oldProp newProp)
+      updated;
+    List.iter (apply_to_element callbacks elem) created
 end
 
 module DomNode = struct
@@ -318,14 +321,7 @@ module Node = struct
         else
           let child = elems.(idx) in
           let grandChildren = Web_node.child_nodes child in
-          if apply_properties callbacks child old.props nw.props then ()
-          else (
-            Js.log
-              "VDom:  Failed swapping properties because the property list \
-               length changed, use `noProp` to swap properties instead, not by \
-               altering the list structure.  This is a massive inefficiency \
-               until this issue is resolved.";
-            replace callbacks elem elems idx newNode);
+          apply_properties callbacks child old.props nw.props;
           patch_nodes callbacks child grandChildren 0 old.vdoms nw.vdoms
     | _ -> failwith "Non-node passed to mutate"
 

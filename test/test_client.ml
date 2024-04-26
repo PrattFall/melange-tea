@@ -78,3 +78,4 @@ List.iter
     | Some btns -> Web.Node.append_child btns new_button |> ignore
     | None -> ())
   examples
+

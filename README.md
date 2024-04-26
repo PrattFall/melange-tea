@@ -37,6 +37,8 @@ For now I am attempting to follow TEA/[The Elm Architecture](https://guide.elm-l
     - This will break some people's older projects if they update to melange + melange-tea
 - Add Style and Attribute constructors (An example would be the `feliz` project for Fable)
     - Removes the need for so many string literals everywhere (fewer chances of misspelling mistakes and such)
+- Make `classes` actually use the `classList` property
+- Handle `data-` attributes
 - Allow optional interop/wrapping of React components
     - If there's a way to do it I'd also like Preact and/or WebComponents as well
 - Refactor, refactor, refactor
