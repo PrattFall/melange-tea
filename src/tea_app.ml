@@ -1,24 +1,28 @@
 open Web_node
 
+type ('msg, 'model) cmd_update = 'model -> 'msg -> 'model * 'msg Tea_cmd.t
+type ('msg, 'model) update = 'model -> 'msg -> 'model
+type ('msg, 'model) view = 'model -> 'msg Vdom.Node.t
+
 type ('flags, 'model, 'msg) program = {
   init : 'flags -> 'model * 'msg Tea_cmd.t;
-  update : 'model -> 'msg -> 'model * 'msg Tea_cmd.t;
-  view : 'model -> 'msg Vdom.t;
+  update : ('msg, 'model) cmd_update;
+  view : ('msg, 'model) view;
   subscriptions : 'model -> 'msg Tea_sub.t;
   shutdown : 'model -> 'msg Tea_cmd.t;
 }
 
 type ('flags, 'model, 'msg) standardProgram = {
   init : 'flags -> 'model * 'msg Tea_cmd.t;
-  update : 'model -> 'msg -> 'model * 'msg Tea_cmd.t;
-  view : 'model -> 'msg Vdom.t;
+  update : ('msg, 'model) cmd_update;
+  view : ('msg, 'model) view;
   subscriptions : 'model -> 'msg Tea_sub.t;
 }
 
 type ('model, 'msg) beginnerProgram = {
   model : 'model;
-  update : 'model -> 'msg -> 'model;
-  view : 'model -> 'msg Vdom.t;
+  update : ('msg, 'model) update;
+  view : ('msg, 'model) view;
 }
 
 type ('model, 'msg) pumpInterface = {
@@ -121,7 +125,7 @@ let programLoop update view subscriptions initModel initCmd = function
           render_string =
             (fun model ->
               let vdom = view model in
-              let rendered = Vdom.renderToHtmlString vdom in
+              let rendered = Vdom.Node.to_string vdom in
               rendered);
           handleMsg =
             (fun model msg ->
@@ -145,7 +149,7 @@ let programLoop update view subscriptions initModel initCmd = function
             (fun _id ->
               let newVdom = [ view !latestModel ] in
               let justRenderedVdom =
-                Vdom.patchVNodesIntoElement callbacks parentNode
+                Vdom.Node.patch_nodes_into_element callbacks parentNode
                   !priorRenderedVdom newVdom
               in
               priorRenderedVdom := justRenderedVdom;
@@ -190,7 +194,7 @@ let programLoop update view subscriptions initModel initCmd = function
           doRender 16
         in
 
-        let render_string model = Vdom.renderToHtmlString (view model) in
+        let render_string model = Vdom.Node.to_string (view model) in
 
         let handler model msg =
           let newModel, cmd = update model msg in

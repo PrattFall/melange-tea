@@ -14,13 +14,13 @@ let registerGlobal name key tagger =
       |> Result.to_option |> Option.map tagger
     in
 
-    let handler = EventHandlerCallback (key, fn) in
+    let handler = EventHandler.EventHandlerCallback (key, fn) in
 
     let elem = Web.Document.node in
 
-    let cache = eventHandler_Register callbacks elem name handler in
+    let cache = EventHandler.register callbacks elem name handler in
 
-    fun () -> eventHandler_Unregister elem name cache |> ignore
+    fun () -> EventHandler.unregister elem name cache |> ignore
   in
 
   Tea_sub.registration key enableCall

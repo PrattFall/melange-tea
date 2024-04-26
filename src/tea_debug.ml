@@ -14,15 +14,18 @@ type 'model debug_model = {
   show_details : bool;
 }
 
+type ('msg, 'model) update = 'model -> 'msg -> 'model * 'msg Tea_cmd.t
+
 let debug (string_of_msg : 'msg -> string)
-    (update : 'model -> 'msg -> 'model * 'msg Tea_cmd.t)
-    (view : 'model -> 'msg Vdom.t) (subscriptions : 'model -> 'msg Tea_sub.t)
+    (update : ('msg, 'model) update)
+    (view : 'model -> 'msg Vdom.Node.t)
+    (subscriptions : 'model -> 'msg Tea_sub.t)
     (shutdown : 'model -> 'msg Tea_cmd.t) :
     ('model * 'msg Tea_cmd.t -> 'model debug_model * 'msg debug_msg Tea_cmd.t)
     * ('model debug_model ->
       'msg debug_msg ->
       'model debug_model * 'msg debug_msg Tea_cmd.t)
-    * ('model debug_model -> 'msg debug_msg Vdom.t)
+    * ('model debug_model -> 'msg debug_msg Vdom.Node.t)
     * ('model debug_model -> 'msg debug_msg Tea_sub.t)
     * ('model debug_model -> 'msg debug_msg Tea_cmd.t) =
   let init_debug (cmodel, cmd) =
