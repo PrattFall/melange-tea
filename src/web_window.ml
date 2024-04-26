@@ -16,7 +16,7 @@ external local_storage : Dom.window -> Dom.Storage.t Js.undefined
 external location : Dom.window -> Web_location.t = "location" [@@mel.get]
 
 let get_history () = history window
-let get_local_storage () = local_storage window
+let get_local_storage () = Js.Undefined.toOption (local_storage window)
 let get_location () = location window
 
 (* requestAnimationFrame callback is a float timestamp in milliseconds *)

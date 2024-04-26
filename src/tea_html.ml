@@ -1,8 +1,6 @@
 open Vdom
 open Vdom.Property
-
 module Node = Web_node
-
 module Cmds = Tea_html_cmds
 
 let map = Tea_app.map
@@ -341,23 +339,13 @@ let onMsg eventName msg = onMsg eventName msg
 
 let onInputOpt ?(key = "") msg =
   onCB "input" key (fun ev ->
-      match Js.Undefined.toOption (Web_event.target ev) with
-      | None -> None
-      | Some target -> (
-          match Js.Undefined.toOption (Node.value target) with
-          | None -> None
-          | Some value -> msg value))
+      Web_event.target ev |> Option.map Node.value |> Option.map msg)
 
 let onInput ?(key = "") msg = onInputOpt ~key (fun ev -> Some (msg ev))
 
 let onChangeOpt ?(key = "") msg =
   onCB "change" key (fun ev ->
-      match Js.Undefined.toOption (Web_event.target ev) with
-      | None -> None
-      | Some target -> (
-          match Js.Undefined.toOption (Node.value target) with
-          | None -> None
-          | Some value -> msg value))
+      Web_event.target ev |> Option.map Node.value |> Option.map msg)
 
 let onChange ?(key = "") msg = onChangeOpt ~key (fun ev -> Some (msg ev))
 let onClick msg = onMsg "click" msg
@@ -367,12 +355,7 @@ let onFocus msg = onMsg "focus" msg
 
 let onCheckOpt ?(key = "") msg =
   onCB "change" key (fun ev ->
-      match Js.Undefined.toOption (Web_event.target ev) with
-      | None -> None
-      | Some target -> (
-          match Js.Undefined.toOption (Node.checked target) with
-          | None -> None
-          | Some value -> msg value))
+      Web_event.target ev |> Option.map Node.checked |> Option.map msg)
 
 let onCheck ?(key = "") msg = onCheckOpt ~key (fun ev -> Some (msg ev))
 let onMouseDown msg = onMsg "mousedown" msg
@@ -388,8 +371,8 @@ let defaultOptions = { stopPropagation = false; preventDefault = false }
 
 let onWithOptions ~(key : string) eventName (options : options) decoder =
   onCB eventName key (fun event ->
-      if options.stopPropagation then (Web_event.stopPropagation event);
-      if options.preventDefault then (Web_event.preventDefault event);
+      if options.stopPropagation then Web_event.stopPropagation event;
+      if options.preventDefault then Web_event.preventDefault event;
       event |> Tea_json.Decoder.decodeEvent decoder |> Result.to_option)
 
 let on ~(key : string) eventName decoder =

@@ -3,7 +3,6 @@ expect to use frequently will be closer to the top. *)
 
 open Vdom
 open Vdom.Property
-
 module Cmds = Tea_html_cmds
 module Node = Web_node
 
@@ -558,10 +557,10 @@ module Events = struct
 
   let onInputOpt ?(key = "") msg =
     onCB "input" key (fun ev ->
-        match Js.Undefined.toOption (Web_event.target ev) with
+        match Web_event.target ev with
         | None -> None
         | Some target -> (
-            match Js.Undefined.toOption (Node.value target) with
+            match Node.value target with
             | None -> None
             | Some value -> msg value))
 
@@ -569,10 +568,10 @@ module Events = struct
 
   let onCheckOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
-        match Js.Undefined.toOption (Web_event.target ev) with
+        match Web_event.target ev with
         | None -> None
         | Some target -> (
-            match Js.Undefined.toOption (Node.checked target) with
+            match Node.checked target with
             | None -> None
             | Some value -> msg value))
 
@@ -580,10 +579,10 @@ module Events = struct
 
   let onChangeOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
-        match Js.Undefined.toOption (Web_event.target ev) with
+        match Web_event.target ev with
         | None -> None
         | Some target -> (
-            match Js.Undefined.toOption (Node.value target) with
+            match Node.value target with
             | None -> None
             | Some value -> msg value))
 

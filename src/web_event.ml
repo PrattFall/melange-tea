@@ -2,8 +2,10 @@
      value : string Js.undefined [@mel.get];
    > Js.t *)
 
-external target : 'e Dom.event_like -> 'a Dom.node_like Js.undefined = "target"
+external target' : 'e Dom.event_like -> 'a Dom.node_like Js.undefined = "target"
 [@@mel.get]
+
+let target ev = Js.Undefined.toOption (target' ev)
 
 external keyCode : 'e Dom.event_like -> int = "keyCode" [@@mel.get]
 
@@ -14,10 +16,9 @@ external stopPropagation : 'e Dom.event_like -> unit = "stopPropagation"
 [@@mel.send]
 
 type 'e callback = 'e Dom.event_like -> unit
-
 type options = bool
 
-let emptyCallback: 'e callback = (fun  _ev -> ())
+let emptyCallback : 'e callback = fun _ev -> ()
 
 (* false | true (* TODO:  Define a javascript record as another option *) *)
 

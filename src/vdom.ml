@@ -147,7 +147,7 @@ let patchVNodesOnElems_PropertiesApply_Add callbacks elem = function
   | Property.NoProp -> ()
   | Property.RawProp (k, v) -> Web_node.set_prop elem k v
   | Property.Attribute (namespace, k, v) ->
-      Web_node.set_attribute' ~namespace elem k v
+      Web_node.set_attribute ~namespace elem k v
   | Property.Data (k, v) ->
       Js.log ("TODO:  Add Data Unhandled", k, v);
       failwith "TODO:  Add Data Unhandled"
@@ -162,7 +162,7 @@ let patchVNodesOnElems_PropertiesApply_Remove elem = function
   | Property.NoProp -> ()
   | Property.RawProp (k, _) -> Web_node.set_prop elem k Js.Undefined.empty
   | Property.Attribute (namespace, k, _) ->
-      Web_node.remove_attribute' ~namespace elem k
+      Web_node.remove_attribute ~namespace elem k
   | Property.Data (k, v) ->
       Js.log ("TODO:  Remove Data Unhandled", k, v);
       failwith "TODO:  Remove Data Unhandled"
@@ -176,8 +176,7 @@ let patchVNodesOnElems_PropertiesApply_Remove elem = function
 let patchVNodesOnElems_PropertiesApply_RemoveAdd callbacks elem oldProp newProp
     =
   patchVNodesOnElems_PropertiesApply_Remove elem oldProp;
-  patchVNodesOnElems_PropertiesApply_Add callbacks elem newProp;
-  ()
+  patchVNodesOnElems_PropertiesApply_Add callbacks elem newProp
 
 let patchVNodesOnElems_PropertiesApply_Mutate elem oldProp = function
   | Property.NoProp ->
@@ -185,7 +184,7 @@ let patchVNodesOnElems_PropertiesApply_Mutate elem oldProp = function
         "This should never be called as all entries through NoProp are gated."
   | Property.RawProp (k, v) -> Web_node.set_prop elem k v
   | Property.Attribute (namespace, k, v) ->
-      Web_node.set_attribute' ~namespace elem k v
+      Web_node.set_attribute ~namespace elem k v
   | Property.Data (k, v) ->
       Js.log ("TODO:  Mutate Data Unhandled", k, v);
       failwith "TODO:  Mutate Data Unhandled"

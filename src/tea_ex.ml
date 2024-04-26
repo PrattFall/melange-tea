@@ -11,24 +11,18 @@ module LocalStorage = struct
 
   let inner mapper =
     nativeBinding (fun cb ->
-        match Js.Undefined.toOption (Web.Window.get_local_storage ()) with
+        match Web.Window.get_local_storage () with
         | None -> cb (Error "localStorage is not available" [@explicit_arity])
         | ((Some value) [@explicit_arity]) ->
             cb (Ok (mapper value) [@explicit_arity]))
 
   let length = inner Dom.Storage.length
   let clear = inner Dom.Storage.clear
-
   let clearCmd () = Tea_task.attemptOpt (fun _ -> None) clear
-
   let key idx = inner (Dom.Storage.key idx)
-
   let getItem key = inner (Dom.Storage.getItem key)
-
   let removeItem key = inner (Dom.Storage.removeItem key)
-
   let removeItemCmd key = Tea_task.attemptOpt (fun _ -> None) (removeItem key)
-
   let setItem key value = inner (Dom.Storage.setItem key value)
 
   let setItemCmd key value =

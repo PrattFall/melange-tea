@@ -170,7 +170,7 @@ let programLoop update view subscriptions initModel initCmd = function
 
         let clearPnode () =
           while Js.Array.length (child_nodes parentNode) > 0 do
-            Js.Nullable.toOption (first_child parentNode)
+            first_child parentNode
             |> Option.iter (fun child -> ignore (remove_child parentNode child))
           done
         in
