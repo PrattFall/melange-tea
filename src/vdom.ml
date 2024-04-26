@@ -189,13 +189,40 @@ module Property = struct
         apply callbacks elem (idx + 1) oldRest newRest
 end
 
+module DomNode = struct
+  type ('msg, 'container) t = {
+    namespace : string;
+    tag_name : string;
+    key : string;
+    unique : string;
+    props : 'msg Property.t list;
+    vdoms : 'container list;
+  }
+
+  let equals n1 n2 =
+    n1.namespace = n2.namespace && n1.tag_name = n2.tag_name && n1.key = n2.key
+
+  let make ?(namespace = "") ?(key = "") ?(unique = "") tag_name props vdoms =
+    { namespace; tag_name; key; unique; props; vdoms }
+
+  let children n = n.vdoms
+end
+
+module LazyGen = struct
+  type 'container t = {
+    key : string;
+    gen : unit -> 'container;
+    cache : 'container ref;
+  }
+
+  let make key gen cache = { key; gen; cache; }
+end
+
 module Node = struct
   type 'msg t =
     | CommentNode of string
     | Text of string
-    (* namespace, tagName, key, unique, props, vdoms *)
-    | Node of
-        string * string * string * string * 'msg Property.t list * 'msg t list
+    | Node of ('msg, 'msg t) DomNode.t
     (* key, gen, cache *)
     | LazyGen of string * (unit -> 'msg t) * 'msg t ref
     (* tagger, vdom *)
@@ -207,8 +234,8 @@ module Node = struct
   let comment s = CommentNode s
   let text s = Text s
 
-  let fullnode namespace tagName key unique props vdoms =
-    Node (namespace, tagName, key, unique, props, vdoms)
+  let fullnode namespace tag_name key unique props vdoms =
+    Node (DomNode.make ~namespace ~key ~unique tag_name props vdoms)
 
   let node ?(namespace = "") ?(key = "") ?(unique = "") tagName props vdoms =
     fullnode namespace tagName key unique props vdoms
@@ -218,18 +245,18 @@ module Node = struct
   let rec to_string = function
     | CommentNode s -> "<!-- " ^ s ^ " -->"
     | Text s -> s
-    | Node (namespace, tagName, _, _, props, vdoms) ->
+    | Node n ->
         String.concat ""
           [
             "<";
-            namespace;
-            (if namespace = "" then "" else ":");
-            tagName;
-            String.concat "" (List.map Property.to_string props);
+            n.namespace;
+            (if n.namespace = "" then "" else ":");
+            n.tag_name;
+            String.concat "" (List.map Property.to_string n.props);
             ">";
-            String.concat "" (List.map to_string vdoms);
+            String.concat "" (List.map to_string n.vdoms);
             "</";
-            tagName;
+            n.tag_name;
             ">";
           ]
     | LazyGen (_, gen, _) -> to_string (gen ())
@@ -244,19 +271,24 @@ module Node = struct
          (Property.mapEmpty newProperties)
          newProperties)
 
-  let rec replace callbacks elem elems idx = function
-    | Node (newNamespace, newTagName, _, _, newProperties, newChildren) ->
+  let rec create_dom_node callbacks newNode =
+    let open DomNode in
+    let newChild =
+      Web.Document.create_element ~namespace:newNode.namespace newNode.tag_name
+    in
+
+    init_properties callbacks newChild newNode.props;
+
+    let grandChildren = Web_node.child_nodes newChild in
+
+    patch_nodes callbacks newChild grandChildren 0 [] newNode.vdoms;
+
+    newChild
+
+  and replace callbacks elem elems idx = function
+    | Node newNode ->
         let oldChild = elems.(idx) in
-
-        let newChild =
-          Web.Document.create_element ~namespace:newNamespace newTagName
-        in
-
-        init_properties callbacks newChild newProperties;
-
-        let grandChildren = Web_node.child_nodes newChild in
-
-        patch_nodes callbacks newChild grandChildren 0 [] newChildren;
+        let newChild = create_dom_node callbacks newNode in
         ignore (Web_node.insert_before elem newChild oldChild);
         ignore (Web_node.remove_child elem oldChild)
     | _ ->
@@ -266,16 +298,7 @@ module Node = struct
   and create_element callbacks = function
     | CommentNode s -> Web.Document.create_comment s
     | Text text -> Web.Document.create_text_node text
-    | Node (newNamespace, newTagName, _, _, newProperties, newChildren) ->
-        let newChild =
-          Web.Document.create_element ~namespace:newNamespace newTagName
-        in
-
-        init_properties callbacks newChild newProperties;
-
-        let childChildren = Web_node.child_nodes newChild in
-        patch_nodes callbacks newChild childChildren 0 [] newChildren;
-        newChild
+    | Node newNode -> create_dom_node callbacks newNode
     | LazyGen (_, newGen, newCache) ->
         let vdom = newGen () in
         newCache := vdom;
@@ -284,16 +307,13 @@ module Node = struct
 
   and mutate callbacks elem elems idx oldNode newNode =
     match (oldNode, newNode) with
-    | ( Node (_, oldTagName, _, oldUnique, oldProperties, oldChildren),
-        (Node (_, newTagName, _, newUnique, newProperties, newChildren) as
-         newNode) ) ->
-        if oldUnique <> newUnique || oldTagName <> newTagName then
+    | Node old, Node nw ->
+        if old.unique <> nw.unique || old.tag_name <> nw.tag_name then
           replace callbacks elem elems idx newNode
         else
           let child = elems.(idx) in
-          let childChildren = Web_node.child_nodes child in
-          if apply_properties callbacks child oldProperties newProperties then
-            ()
+          let grandChildren = Web_node.child_nodes child in
+          if apply_properties callbacks child old.props nw.props then ()
           else (
             Js.log
               "VDom:  Failed swapping properties because the property list \
@@ -301,7 +321,7 @@ module Node = struct
                altering the list structure.  This is a massive inefficiency \
                until this issue is resolved.";
             replace callbacks elem elems idx newNode);
-          patch_nodes callbacks child childChildren 0 oldChildren newChildren
+          patch_nodes callbacks child grandChildren 0 old.vdoms nw.vdoms
     | _ -> failwith "Non-node passed to mutate"
 
   and patch_nodes callbacks elem elems idx oldVNodes newVNodes =
@@ -329,7 +349,7 @@ module Node = struct
            let child = elems.(idx) in
            Web_node.set_value child newText);
         patch_nodes callbacks elem elems (idx + 1) oldRest newRest
-    | ( LazyGen (oldKey, _oldGen, oldCache) :: oldRest,
+    | ( LazyGen (oldKey, _, oldCache) :: oldRest,
         LazyGen (newKey, newGen, newCache) :: newRest ) -> (
         if oldKey = newKey then (
           newCache := !oldCache;
@@ -364,46 +384,36 @@ module Node = struct
               newCache := newVdom;
               patch_nodes callbacks elem elems idx (oldVdom :: oldRest)
                 (newVdom :: newRest))
-    | ( (Node (oldNamespace, oldTagName, oldKey, _, _, _) as oldNode) :: oldRest,
-        (Node (newNamespace, newTagName, newKey, _, _, _) as newNode) :: newRest
-      ) -> (
-        if oldKey = newKey && oldKey <> "" then
+    | Node oldNode :: oldRest, Node newNode :: newRest -> (
+        if oldNode.key = newNode.key && oldNode.key <> "" then
           patch_nodes callbacks elem elems (idx + 1) oldRest newRest
-        else if oldKey = "" || newKey = "" then (
-          mutate callbacks elem elems idx oldNode newNode;
+        else if oldNode.key = "" || newNode.key = "" then (
+          mutate callbacks elem elems idx (Node oldNode) (Node newNode);
           patch_nodes callbacks elem elems (idx + 1) oldRest newRest)
         else
           match (oldRest, newRest) with
-          | ( Node (olderNamespace, olderTagName, olderKey, _, _, _) :: olderRest,
-              Node (newerNamespace, newerTagName, newerKey, _, _, _)
-              :: newerRest )
-            when olderNamespace = newNamespace
-                 && olderTagName = newTagName && olderKey = newKey
-                 && oldNamespace = newerNamespace
-                 && oldTagName = newerTagName && oldKey = newerKey ->
+          | Node olderNode :: olderRest, Node newerNode :: newerRest
+            when DomNode.equals olderNode newNode
+                 && DomNode.equals oldNode newerNode ->
               let firstChild = elems.(idx) in
               let secondChild = elems.(idx + 1) in
               ignore (Web_node.remove_child elem secondChild);
               ignore (Web_node.insert_before elem secondChild firstChild);
               patch_nodes callbacks elem elems (idx + 2) olderRest newerRest
-          | ( Node (olderNamespace, olderTagName, olderKey, _, _, _) :: olderRest,
-              _ )
-            when olderNamespace = newNamespace
-                 && olderTagName = newTagName && olderKey = newKey ->
+          | Node olderNode :: olderRest, _ when DomNode.equals olderNode newNode
+            ->
               let oldChild = elems.(idx) in
               ignore (Web_node.remove_child elem oldChild);
               patch_nodes callbacks elem elems (idx + 1) olderRest newRest
-          | _, Node (newerNamespace, newerTagName, newerKey, _, _, _) :: _
-            when oldNamespace = newerNamespace
-                 && oldTagName = newerTagName && oldKey = newerKey ->
+          | _, Node newerNode :: _ when DomNode.equals oldNode newerNode ->
               let oldChild = elems.(idx) in
-              let newChild = create_element callbacks newNode in
+              let newChild = create_element callbacks (Node newNode) in
               let _attachedChild =
                 Web_node.insert_before elem newChild oldChild
               in
               patch_nodes callbacks elem elems (idx + 1) oldVNodes newRest
           | _ ->
-              mutate callbacks elem elems idx oldNode newNode;
+              mutate callbacks elem elems idx (Node oldNode) (Node newNode);
               patch_nodes callbacks elem elems (idx + 1) oldRest newRest)
     | _ :: oldRest, newNode :: newRest ->
         let oldChild = elems.(idx) in
