@@ -1,5 +1,4 @@
 open Vdom
-open Vdom.Property
 module Node = Web_node
 module Cmds = Tea_html_cmds
 
@@ -7,7 +6,7 @@ let map = Tea_app.map
 
 (* Nodes *)
 
-let noProp = noProp
+let noProp = Property.empty
 let noNode = noNode
 let text str = text str
 let lazy1 key gen = lazyGen key gen
@@ -302,15 +301,15 @@ let menu ?(key = "") ?(unique = "") props nodes =
 
 (* Properties *)
 
-let id str = prop "id" str
+let id str = Property.prop "id" str
 
 (* `href` is actually an attribute, not a property, but need it here for Elm compat... *)
-let href str = attribute "" "href" str
+let href str = Property.attribute "" "href" str
 
 (* `src` is actually an attribute, not a property, but need it here for Elm compat... *)
-let src str = attribute "" "src" str
-let title str = attribute "" "title" str
-let class' name = prop "className" name
+let src str = Property.attribute "" "src" str
+let title str = Property.attribute "" "title" str
+let class' name = Property.prop "className" name
 
 let classList classes =
   classes
@@ -318,24 +317,24 @@ let classList classes =
   |> List.map (fun (fst, _snd) -> fst)
   |> String.concat " " |> class'
 
-let type' typ = prop "type" typ
-let style key value = style key value
-let styles s = styles s
-let placeholder str = prop "placeholder" str
-let autofocus b = if b then prop "autofocus" "autofocus" else noProp
-let value str = prop "value" str
-let name str = prop "name" str
-let checked b = if b then prop "checked" "checked" else noProp
-let for' str = prop "htmlFor" str
-let hidden b = if b then prop "hidden" "hidden" else noProp
-let target t = prop "target" t
-let action a = prop "action" a
-let method' m = prop "method" m
+let type' typ = Property.prop "type" typ
+let style key value = Property.style key value
+let styles s = Property.styles s
+let placeholder str = Property.prop "placeholder" str
+let autofocus b = if b then Property.prop "autofocus" "autofocus" else noProp
+let value str = Property.prop "value" str
+let name str = Property.prop "name" str
+let checked b = if b then Property.prop "checked" "checked" else noProp
+let for' str = Property.prop "htmlFor" str
+let hidden b = if b then Property.prop "hidden" "hidden" else noProp
+let target t = Property.prop "target" t
+let action a = Property.prop "action" a
+let method' m = Property.prop "method" m
 
 (* Events *)
 
-let onCB eventName key cb = onCB eventName key cb
-let onMsg eventName msg = onMsg eventName msg
+let onCB eventName key cb = Property.onCB eventName key cb
+let onMsg eventName msg = Property.onMsg eventName msg
 
 let onInputOpt ?(key = "") msg =
   onCB "input" key (fun ev ->
@@ -387,11 +386,11 @@ let targetChecked =
 let keyCode = Tea_json.Decoder.field "keyCode" Tea_json.Decoder.int
 
 module Attributes = struct
-  let max value = attribute "" "max" value
-  let min value = attribute "" "min" value
-  let step value = attribute "" "step" value
-  let disabled b = if b then attribute "" "disabled" "true" else noProp
-  let selected b = if b then attribute "" "selected" "true" else noProp
-  let acceptCharset c = attribute "" "accept-charset" c
-  let rel value = attribute "" "rel" value
+  let max value = Property.attribute "" "max" value
+  let min value = Property.attribute "" "min" value
+  let step value = Property.attribute "" "step" value
+  let disabled b = if b then Property.attribute "" "disabled" "true" else noProp
+  let selected b = if b then Property.attribute "" "selected" "true" else noProp
+  let acceptCharset c = Property.attribute "" "accept-charset" c
+  let rel value = Property.attribute "" "rel" value
 end

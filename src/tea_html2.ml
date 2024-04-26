@@ -366,7 +366,7 @@ let link ?(key = "") ?(unique = "") props =
 module Attributes = struct
   (** {1 Primitives} *)
 
-  let noProp = Vdom.Property.noProp
+  let noProp = Vdom.Property.empty
   let style = Vdom.Property.style
   let styles = Vdom.Property.styles
 

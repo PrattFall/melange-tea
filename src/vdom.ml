@@ -27,7 +27,7 @@ module Property = struct
     | Event of string * 'msg eventHandler * 'msg eventCache option ref
     | Style of (string * string) list
 
-  let noProp = NoProp
+  let empty = NoProp
   let prop key value = RawProp (key, value)
   let onCB name key cb = Event (name, EventHandlerCallback (key, cb), ref None)
   let onMsg name msg = Event (name, EventHandlerMsg msg, ref None)
@@ -35,7 +35,7 @@ module Property = struct
   let data key value = Data (key, value)
   let style key value = Style [ (key, value) ]
   let styles s = Style s
-  let mapEmpty props = List.map (fun _ -> noProp) props
+  let mapEmpty props = List.map (fun _ -> empty) props
 
   let render = function
     | NoProp -> ""
@@ -218,48 +218,36 @@ let rec patchVNodesOnElems_PropertiesApply callbacks elem idx oldProperties
         newRest
   | ( (RawProp (oldK, oldV) as oldProp) :: oldRest,
       (RawProp (newK, newV) as newProp) :: newRest ) ->
-      let () =
-        if oldK = newK && oldV = newV then ()
-        else patchVNodesOnElems_PropertiesApply_Mutate elem oldProp newProp
-      in
+      if oldK = newK && oldV = newV then ()
+      else patchVNodesOnElems_PropertiesApply_Mutate elem oldProp newProp;
       patchVNodesOnElems_PropertiesApply callbacks elem (idx + 1) oldRest
         newRest
   | ( (Attribute (oldNS, oldK, oldV) as oldProp) :: oldRest,
       (Attribute (newNS, newK, newV) as newProp) :: newRest ) ->
-      let () =
-        if oldNS = newNS && oldK = newK && oldV = newV then ()
-        else patchVNodesOnElems_PropertiesApply_Mutate elem oldProp newProp
-      in
+      if oldNS = newNS && oldK = newK && oldV = newV then ()
+      else patchVNodesOnElems_PropertiesApply_Mutate elem oldProp newProp;
       patchVNodesOnElems_PropertiesApply callbacks elem (idx + 1) oldRest
         newRest
   | ( (Data (oldK, oldV) as oldProp) :: oldRest,
       (Data (newK, newV) as newProp) :: newRest ) ->
-      let () =
-        if oldK = newK && oldV = newV then ()
-        else patchVNodesOnElems_PropertiesApply_Mutate elem oldProp newProp
-      in
+      if oldK = newK && oldV = newV then ()
+      else patchVNodesOnElems_PropertiesApply_Mutate elem oldProp newProp;
       patchVNodesOnElems_PropertiesApply callbacks elem (idx + 1) oldRest
         newRest
   | ( Event (oldName, oldHandlerType, oldCache) :: oldRest,
       Event (newName, newHandlerType, newCache) :: newRest ) ->
-      let () =
-        eventHandler_Mutate callbacks elem oldName newName oldHandlerType
-          newHandlerType oldCache newCache
-      in
+      eventHandler_Mutate callbacks elem oldName newName oldHandlerType
+        newHandlerType oldCache newCache;
       patchVNodesOnElems_PropertiesApply callbacks elem (idx + 1) oldRest
         newRest
   | (Style oldS as oldProp) :: oldRest, (Style newS as newProp) :: newRest ->
-      let () =
-        if oldS = newS then ()
-        else patchVNodesOnElems_PropertiesApply_Mutate elem oldProp newProp
-      in
+      if oldS = newS then ()
+      else patchVNodesOnElems_PropertiesApply_Mutate elem oldProp newProp;
       patchVNodesOnElems_PropertiesApply callbacks elem (idx + 1) oldRest
         newRest
   | oldProp :: oldRest, newProp :: newRest ->
-      let () =
-        patchVNodesOnElems_PropertiesApply_RemoveAdd callbacks elem oldProp
-          newProp
-      in
+      patchVNodesOnElems_PropertiesApply_RemoveAdd callbacks elem oldProp
+        newProp;
       patchVNodesOnElems_PropertiesApply callbacks elem (idx + 1) oldRest
         newRest
 
@@ -270,7 +258,7 @@ let patchVNodesOnElems_Properties callbacks elem oldProperties newProperties =
 let genEmptyProps length =
   let rec aux lst = function
     | 0 -> lst
-    | len -> aux (Property.noProp :: lst) (len - 1)
+    | len -> aux (Property.empty :: lst) (len - 1)
   in
   aux [] length
 
@@ -330,21 +318,17 @@ and patchVNodesOnElems_MutateNode callbacks elem elems idx oldNode newNode =
       else
         let child = elems.(idx) in
         let childChildren = Web_node.child_nodes child in
-        let () =
-          if
-            patchVNodesOnElems_Properties callbacks child oldProperties
-              newProperties
-          then ()
-          else
-            let () =
-              Js.log
-                "VDom:  Failed swapping properties because the property list \
-                 length changed, use `noProp` to swap properties instead, not \
-                 by altering the list structure.  This is a massive \
-                 inefficiency until this issue is resolved."
-            in
-            patchVNodesOnElems_ReplaceNode callbacks elem elems idx newNode
-        in
+        if
+          patchVNodesOnElems_Properties callbacks child oldProperties
+            newProperties
+        then ()
+        else (
+          Js.log
+            "VDom:  Failed swapping properties because the property list \
+             length changed, use `noProp` to swap properties instead, not by \
+             altering the list structure.  This is a massive inefficiency \
+             until this issue is resolved.";
+          patchVNodesOnElems_ReplaceNode callbacks elem elems idx newNode);
         patchVNodesOnElems callbacks child childChildren 0 oldChildren
           newChildren
   | _ -> failwith "Non-node passed to patchVNodesOnElems_MutateNode"
@@ -354,10 +338,8 @@ and patchVNodesOnElems callbacks elem elems idx oldVNodes newVNodes =
   | Tagger (_, oldVdom) :: oldRest, _ ->
       patchVNodesOnElems callbacks elem elems idx (oldVdom :: oldRest) newVNodes
   | oldNode :: oldRest, Tagger (newTagger, newVdom) :: newRest ->
-      let () =
-        patchVNodesOnElems (newTagger callbacks) elem elems idx [ oldNode ]
-          [ newVdom ]
-      in
+      patchVNodesOnElems (newTagger callbacks) elem elems idx [ oldNode ]
+        [ newVdom ];
       patchVNodesOnElems callbacks elem elems (idx + 1) oldRest newRest
   | [], [] -> ()
   | [], newNode :: newRest ->
