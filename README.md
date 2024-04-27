@@ -28,13 +28,13 @@ For now I am attempting to follow TEA/[The Elm Architecture](https://guide.elm-l
 - Removed `Tea_result` as we are far past the OCaml version where `result` was added with Melange
 - Removed the Reason.ml code since it was generated anyway and this library should work with both OCaml and Reason syntax without it
 - Changed the `test` code to use Vite for rendering
+- Replaced Tea.Html with Tea.Html2's code. Fully embracing the current Elm architecture for now before making other changes.
+    - This will break some people's older projects if they update to melange + melange-tea
 
 ### Proposed
 
 - Copy Elm's `Browser` module structure
 - Remove the XMLHttpRequest-related code or at least port it to fetch (either custom or using `melange-fetch`)
-- Replace Tea.Html with Tea.Html2's code. Fully embrace the current Elm architecture for now before making other changes.
-    - This will break some people's older projects if they update to melange + melange-tea
 - Add Style and Attribute constructors (An example would be the `feliz` project for Fable)
     - Removes the need for so many string literals everywhere (fewer chances of misspelling mistakes and such)
 - Make `classes` actually use the `classList` property
