@@ -1,5 +1,7 @@
 open Tea.App
 open Tea.Html
+open Tea.Html.Attributes
+open Tea.Html.Events
 
 type msg = Trigger [@@bs.deriving { accessors }]
 type model = string option * string option

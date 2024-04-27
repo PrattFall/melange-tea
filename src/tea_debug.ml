@@ -56,7 +56,7 @@ let debug (string_of_msg : 'msg -> string)
   in
 
   let view_styles () =
-    let open Tea_html2 in
+    let open Tea_html in
     let rule selector properties =
       properties
       |> List.map (fun (k, v) -> k ^ ":" ^ v)
@@ -187,8 +187,8 @@ let debug (string_of_msg : 'msg -> string)
   in
 
   let view_details model =
-    let open Tea_html2 in
-    let module A = Tea_html2.Attributes in
+    let open Tea_html in
+    let module A = Tea_html.Attributes in
     let format =
       [%raw
         {|
@@ -251,9 +251,9 @@ let debug (string_of_msg : 'msg -> string)
   in
 
   let view_history model selected_index =
-    let open Tea_html2 in
-    let module A = Tea_html2.Attributes in
-    let module E = Tea_html2.Events in
+    let open Tea_html in
+    let module A = Tea_html.Attributes in
+    let module E = Tea_html.Events in
     let count = List.length model.history in
     ul [ A.class' "history" ]
     @@ List.mapi
@@ -286,9 +286,9 @@ let debug (string_of_msg : 'msg -> string)
   in
 
   let view' model =
-    let open Tea_html2 in
-    let module A = Tea_html2.Attributes in
-    let module E = Tea_html2.Events in
+    let open Tea_html in
+    let module A = Tea_html.Attributes in
+    let module E = Tea_html.Events in
     let selected_index, selected_model, paused =
       match model.state with
       | Running -> (0, List.hd model.history |> snd, false)

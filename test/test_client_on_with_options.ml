@@ -1,7 +1,7 @@
 open Tea.App
-open Tea.Html2
-open Tea.Html2.Attributes
-open Tea.Html2.Events
+open Tea.Html
+open Tea.Html.Attributes
+open Tea.Html.Events
 open Tea.Json
 
 type msg = Click | Set_value of int [@@deriving accessors]

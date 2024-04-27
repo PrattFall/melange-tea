@@ -1,6 +1,8 @@
 open Tea
 open Tea.App
 open Tea.Html
+open Tea.Html.Events
+open Tea.Html.Attributes
 open Tea.Mouse
 
 type msg = DragStart of position | DragAt of position | DragEnd of position

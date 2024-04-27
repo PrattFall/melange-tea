@@ -1,5 +1,7 @@
 open Tea.App
 open Tea.Html
+open Tea.Html.Events
+open Tea.Html.Attributes
 
 type model = { selected : string option; languages : string list }
 type message = Select of string | Delete [@@deriving accessors]

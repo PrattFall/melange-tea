@@ -1,5 +1,6 @@
 open Tea
 open Tea.Html
+open Tea.Html.Events
 
 type msg = GotResponse of (string, string) result | Req [@@deriving accessors]
 

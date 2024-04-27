@@ -1,5 +1,7 @@
 open Tea.App
 open Tea.Html
+open Tea.Html.Events
+open Tea.Html.Attributes
 
 type msg = Increment | Decrement | Reset | Set of int
 

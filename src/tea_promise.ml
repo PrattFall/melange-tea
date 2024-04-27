@@ -22,7 +22,6 @@ let result promise msg =
                let resolve = enq (Ok res) in
                Js.Promise.resolve resolve)
         |> Js.Promise.catch (function _ ->
-               (* let err_to_string (err: Js.Promise.error) = {j|$err|j} in *)
                let reject = enq (Error "error in promise") in
                Js.Promise.resolve reject)
       in
