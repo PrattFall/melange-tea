@@ -7,13 +7,10 @@ let spawn initState update shutdown =
     | None -> ()
     | Some model -> (
         match procMsg with
-        | PushMsg msg ->
-            let () = state := update model msg in
-            ()
+        | PushMsg msg -> state := update model msg
         | Kill ->
-            let () = shutdown model in
-            let () = state := None in
-            ())
+            shutdown model;
+            state := None)
   in
   onMessage
 
