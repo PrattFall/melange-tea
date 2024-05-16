@@ -4,4 +4,5 @@
 /lib/js/test
 /lib/ocaml
 npm-debug.log
-
+_opam/
+_build/
