@@ -1,12 +1,5 @@
 type t = float
 
-(* type 'msg mySub =
-     | Every of t * (t -> 'msg)
-
-
-   type 'msg myCmd =
-     | Delay of t * (unit -> 'msg) *)
-
 let every ~key interval tagger =
   let open Vdom.ApplicationCallbacks in
   let enableCall callbacks =
@@ -15,10 +8,7 @@ let every ~key interval tagger =
         (fun () -> callbacks.enqueue (tagger (Web.Date.now ())))
         interval
     in
-    (* let () = Js.log ("Time.every", "enable", interval, tagger, callbacks) in *)
-    fun () ->
-      (* let () = Js.log ("Time.every", "disable", id, interval, tagger, callbacks) in *)
-      Web.Window.clear_timeout id
+    fun () -> Web.Window.clear_timeout id
   in
   Tea_sub.registration key enableCall
 
@@ -35,11 +25,7 @@ let delay msTime msg =
 
 (* Generic Helpers *)
 
-let millisecond = 1.0
-let second = 1000.0 *. millisecond
-let minute = 60.0 *. second
-let hour = 60.0 *. minute
-let inMilliseconds t = t
-let inSeconds t = t /. second
-let inMinutes t = t /. minute
-let inHours t = t /. hour
+let milliseconds (m : float) = m
+let seconds s = 1000.0 *. s
+let minutes m = 60.0 *. seconds m
+let hours h = 60.0 *. minutes h

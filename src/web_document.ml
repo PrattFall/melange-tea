@@ -1,5 +1,3 @@
-(* TODO:  Polyfill document if it is missing, like on node or in native *)
-
 external document : Dom.document = "document"
 external body : Dom.document -> 'a Dom.node_like = "body" [@@mel.get]
 
@@ -25,7 +23,9 @@ external _get_element_by_id :
 
 external _location : Dom.document -> Web_location.t = "location" [@@mel.get]
 
+(** Get the document object as a Dom.node_like *)
 let node = (document :> 'a Dom._document Dom.node_like)
+
 let create_comment value = _create_comment document value
 let create_text_node value = _create_text_node document value
 

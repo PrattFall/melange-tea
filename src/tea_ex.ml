@@ -4,6 +4,7 @@ let render_event ?(key = "") msg =
     callbacks.on (AddRenderMsg msg);
     fun () -> callbacks.on (RemoveRenderMsg msg)
   in
+
   Tea_sub.registration key enableCall
 
 module LocalStorage = struct
@@ -13,8 +14,7 @@ module LocalStorage = struct
     nativeBinding (fun cb ->
         match Web.Window.get_local_storage () with
         | None -> cb (Error "localStorage is not available")
-        | ((Some value) [@explicit_arity]) ->
-            cb (Ok (mapper value) [@explicit_arity]))
+        | Some value -> cb (Ok (mapper value)))
 
   let length = inner Dom.Storage.length
   let clear = inner Dom.Storage.clear
