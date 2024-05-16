@@ -102,7 +102,7 @@ module Property = struct
     | RawProp (k1, _), RawProp (k2, _) -> k1 = k2
     | Attribute (ns1, k1, _), Attribute (ns2, k2, _) -> ns1 = ns2 && k1 = k2
     | Data (k1, _), Data (k2, _) -> k1 = k2
-    | Event (n1, h1, _), Event (n2, h2, _) -> n1 = n2 && h1 = h2
+    | Event (n1, _, _), Event (n2, _, _) -> n1 = n2
     | Style _, Style _ -> true
     | _ -> false
 
@@ -299,6 +299,7 @@ module Node = struct
 
   let rec create_dom_node callbacks newNode =
     let open DomNode in
+
     let newChild =
       Web.Document.create_element ~namespace:newNode.namespace newNode.tag_name
     in

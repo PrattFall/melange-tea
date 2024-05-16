@@ -4,7 +4,7 @@ open Tea.Html.Events
 open Tea.Html.Attributes
 
 type model = { selected : string option; languages : string list }
-type message = Select of string | Delete [@@deriving accessors]
+type message = Select of string | Delete
 
 let render_selected = function
   | Some selected ->
@@ -27,7 +27,7 @@ let lang l is_selected =
       onClick (Select l);
       style "color" "blue";
       (if is_selected then style "border" "1px solid black" else noProp);
-      (if is_selected then Vdom.Property.attribute "" "lang" l else noProp);
+      (if is_selected then raw "" "lang" l else noProp);
     ]
     [ text l ]
 

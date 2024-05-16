@@ -3,7 +3,7 @@ open Tea.Html
 open Tea.Html.Attributes
 open Tea.Html.Events
 
-type msg = Click | Set_value of int [@@deriving accessors]
+type msg = Click | Set_value of int
 
 let update model = function Click -> model + 1 | Set_value n -> n
 let set_value v = Set_value v
@@ -15,30 +15,27 @@ let view model =
        [
          text (string_of_int model);
          button [ onClick Click ] [ text "onClick" ];
-         button
-           [ on ~key:"" "click" (fun _ -> Some Click) ]
-           [ text "on \"click\"" ];
+         button [ on "click" (send Click) ] [ text "on \"click\"" ];
          a [ href "https://www.google.com" ] [ text "a normal link" ];
          a
            [
              href "https://www.google.com";
-             onWithOptions ~key:"" "click"
-               { defaultOptions with preventDefault = true } (fun _ ->
-                 Some Click);
+             on ~preventDefault:true "click" (send Click);
            ]
            [ text "a link with prevent default" ];
          button
            [
-             on ~key:"" "click" (fun e ->
-                 Some (set_value (Web_event.client_x e)));
+             on "click" (fun e ->
+                 Ok (set_value (Tea.Web.Event.client_x e)));
            ]
            [ text "on \"click\", use clientX value" ];
          input'
            [
              type' "text";
-             on ~key:"" "input" (fun e ->
+             on "input" (fun e ->
                  e |> targetValue
-                 |> Option.map (fun v -> v |> int_of_string |> set_value));
+                 |> Option.map (fun v -> v |> int_of_string |> set_value)
+                 |> sendOption);
            ]
            [];
        ])

@@ -22,8 +22,8 @@ let example_key_to_string = function
 
 external innerHtml : Dom.element -> string -> unit = "innerHTML" [@@mel.set]
 
-let elem = Web.Document.get_element_by_id "content"
-let buttons : Dom.element option = Web.Document.get_element_by_id "buttons"
+let elem = Tea.Web.Document.get_element_by_id "content"
+let buttons : Dom.element option = Tea.Web.Document.get_element_by_id "buttons"
 
 let counter () =
   Test_client_counter.main (Js.Nullable.fromOption elem) () |> ignore
@@ -70,12 +70,12 @@ let examples =
 
 List.iter
   (fun (key, program) ->
-    let new_button = Web.Document.create_element "button" in
+    let new_button = Tea.Web.Document.create_element "button" in
     innerHtml new_button (example_key_to_string key);
-    Web.Node.add_event_listener new_button "click" (fun _ -> program ());
+    Tea.Web.Node.add_event_listener new_button "click" (fun _ -> program ());
 
     match buttons with
-    | Some btns -> Web.Node.append_child btns new_button |> ignore
+    | Some btns -> Tea.Web.Node.append_child btns new_button |> ignore
     | None -> ())
   examples
 

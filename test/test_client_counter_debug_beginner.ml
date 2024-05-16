@@ -21,6 +21,7 @@ let view_button title msg = button [ onClick msg ] [ text title ]
 
 let view model =
   let increment_action = if model >= 3 then Decrement else Increment in
+
   div []
     [
       span [ style "text-weight" "bold" ] [ text (string_of_int model) ];

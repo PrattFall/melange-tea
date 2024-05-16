@@ -367,6 +367,7 @@ module Attributes = struct
     |> List.map (fun (fst, _snd) -> fst)
     |> String.concat " " |> class'
 
+  let raw = attribute
   let id str = prop "id" str
   let title str = attribute "" "title" str
   let hidden b = if b then prop "hidden" "hidden" else noProp
@@ -515,19 +516,19 @@ end
 module Events = struct
   (** {1 Primitives} *)
 
-  type options = { stopPropagation : bool; preventDefault : bool }
+  let send msg _ = Ok msg
 
-  let defaultOptions = { stopPropagation = false; preventDefault = false }
+  let sendOption = function
+    | Some msg -> Ok msg
+    | None -> failwith "Message is None"
 
-  let onWithOptions ~(key : string) eventName (options : options) decoder =
+  let on ?(key = "") ?(preventDefault = false) ?(stopPropagation = false)
+      eventName decoder =
     onCB eventName key (fun event ->
-        if options.stopPropagation then Web_event.stopPropagation event;
-        if options.preventDefault then Web_event.preventDefault event;
+        if stopPropagation then Web_event.stopPropagation event;
+        if preventDefault then Web_event.preventDefault event;
 
-        event |> decoder)
-
-  let on ~(key : string) eventName decoder =
-    onWithOptions ~key eventName defaultOptions decoder
+        event |> decoder |> Result.to_option)
 
   let onCB = onCB
   let onMsg = onMsg
@@ -540,10 +541,9 @@ module Events = struct
 
   let keyCode = Web_event.keyCode
 
-  let preventDefaultOn ?(key = "") eventName decoder =
-    onWithOptions ~key eventName
-      { defaultOptions with preventDefault = true }
-      decoder
+  let preventDefaultOn ?(key = "") ?(stopPropagation = false) eventName decoder
+      =
+    on ~key ~preventDefault:true ~stopPropagation eventName decoder
 
   (** {1 Mouse helpers} *)
 
