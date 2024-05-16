@@ -31,7 +31,7 @@ module EventHandler = struct
     cb : (Dom.event -> 'msg option) ref;
   }
 
-  let emptyEventCB _ev : 'e Web_event.callback option = None
+  let emptyEventCB _ev : 'e Web.Event.callback option = None
 
   let eventHandler callbacks cb ev =
     let open ApplicationCallbacks in
@@ -43,7 +43,7 @@ module EventHandler = struct
     | EventHandlerCallback (_, cb) -> cb
     | EventHandlerMsg (msg : 'msg) -> fun _ev -> Some msg
 
-  let compareEventHandlerTypes left right =
+  let equals left right =
     match (left, right) with
     | EventHandlerCallback (lcb, _), EventHandlerCallback (rcb, _) -> lcb = rcb
     | EventHandlerMsg lmsg, EventHandlerMsg rmsg -> lmsg = rmsg
@@ -52,14 +52,13 @@ module EventHandler = struct
   let register callbacks elem event_name handlerType =
     let cb = ref (get_callback handlerType) in
     let handler = eventHandler callbacks cb in
-    Web_node.add_event_listener elem event_name handler;
+    Web.Node.add_event_listener elem event_name handler;
     Some { handler; cb }
 
-  let unregister (elem : 'a Dom.node_like) (event_name : string) :
-      'msg cache option -> 'msg cache option = function
+  let unregister (elem : 'a Dom.node_like) (event_name : string) = function
     | None -> None
     | Some cache ->
-        Web_node.remove_event_listener elem event_name cache.handler;
+        Web.Node.remove_event_listener elem event_name cache.handler;
         None
 
   let mutate callbacks elem oldName newName oldHandlerType newHandlerType
@@ -69,7 +68,7 @@ module EventHandler = struct
     | Some oldcache ->
         if oldName = newName then (
           newCache := !oldCache;
-          if compareEventHandlerTypes oldHandlerType newHandlerType then ()
+          if equals oldHandlerType newHandlerType then ()
           else oldcache.cb := get_callback newHandlerType)
         else (
           oldCache := unregister elem oldName !oldCache;
@@ -94,8 +93,11 @@ module Property = struct
   let data key value = Data (key, value)
   let style key value = Style [ (key, value) ]
   let styles s = Style s
-  let mapEmpty props = List.map (fun _ -> empty) props
 
+  (** Convert a list of Properties to NoProps *)
+  let map_empty props = List.map (fun _ -> empty) props
+
+  (** Compare two Properties based on their namespaces and keys *)
   let equals x y =
     match (x, y) with
     | NoProp, NoProp -> true
@@ -106,6 +108,7 @@ module Property = struct
     | Style _, Style _ -> true
     | _ -> false
 
+  (** Convert a Property to its HTML string representation *)
   let to_string = function
     | RawProp (k, v) -> String.concat "" [ " "; k; "=\""; v; "\"" ]
     | Attribute (_, k, v) -> String.concat "" [ " "; k; "=\""; v; "\"" ]
@@ -120,44 +123,46 @@ module Property = struct
           ]
     | _ -> ""
 
-  let genEmpty length =
-    let rec aux lst = function
-      | 0 -> lst
-      | len -> aux (empty :: lst) (len - 1)
-    in
-    aux [] length
-
   let apply_to_element callbacks elem = function
     | NoProp -> ()
-    | RawProp (k, v) -> Web_node.set_prop elem k v
-    | Attribute (namespace, k, v) -> Web_node.set_attribute ~namespace elem k v
+    | RawProp (k, v) -> Web.Node.set_prop elem k v
+    | Attribute (namespace, k, v) -> Web.Node.set_attribute ~namespace elem k v
     | Data (k, v) ->
         Js.log ("TODO:  Add Data Unhandled", k, v);
         failwith "TODO:  Add Data Unhandled"
     | Event (name, handlerType, cache) ->
         cache := EventHandler.register callbacks elem name handlerType
     | Style s ->
-        List.iter (fun (k, v) -> Web_node.set_style_property elem k (Some v)) s
+        List.iter (fun (k, v) -> Web.Node.set_style_property elem k (Some v)) s
 
   let remove_from_element elem = function
     | NoProp -> ()
-    | RawProp (k, _) -> Web_node.set_prop elem k Js.Undefined.empty
-    | Attribute (namespace, k, _) -> Web_node.remove_attribute ~namespace elem k
+    | RawProp (k, _) -> Web.Node.set_prop elem k Js.Undefined.empty
+    | Attribute (namespace, k, _) -> Web.Node.remove_attribute ~namespace elem k
     | Data (k, v) ->
         Js.log ("TODO:  Remove Data Unhandled", k, v);
         failwith "TODO:  Remove Data Unhandled"
     | Event (name, _, cache) ->
         cache := EventHandler.unregister elem name !cache
     | Style s ->
-        List.iter (fun (k, _) -> Web_node.set_style_property elem k None) s
+        List.iter (fun (k, _) -> Web.Node.set_style_property elem k None) s
 
+  (** Replace a Property on an Element with another Property *)
   let replace_on_element callbacks elem oldProp newProp =
     remove_from_element elem oldProp;
     apply_to_element callbacks elem newProp
 
-  let mutate_on_element elem oldProp = function
-    | RawProp (k, v) -> Web_node.set_prop elem k v
-    | Attribute (namespace, k, v) -> Web_node.set_attribute ~namespace elem k v
+  (** Modify a Property on an Element using values from another Property.
+      (At the moment replaces everything) *)
+  let mutate_on_element callbacks elem oldProp = function
+    | RawProp (k, v) -> Web.Node.set_prop elem k v
+    | Attribute (namespace, k, v) -> Web.Node.set_attribute ~namespace elem k v
+    | Event (name, handler, cache) -> (
+        match oldProp with
+        | Event (oldName, oldHandler, oldCache) ->
+            EventHandler.mutate callbacks elem oldName name oldHandler handler
+              oldCache cache
+        | _ -> ())
     | Data (k, v) ->
         Js.log ("TODO:  Mutate Data Unhandled", k, v);
         failwith "TODO:  Mutate Data Unhandled"
@@ -178,7 +183,7 @@ module Property = struct
                Style is not actually a style!")
     | _ -> ()
 
-  let apply callbacks elem _idx oldProperties newProperties =
+  let apply callbacks elem oldProperties newProperties =
     let updatedNew, created =
       List.partition
         (fun a -> List.exists (equals a) oldProperties)
@@ -201,7 +206,8 @@ module Property = struct
 
     List.iter (remove_from_element elem) deletable;
     List.iter
-      (fun (oldProp, newProp) -> mutate_on_element elem oldProp newProp)
+      (fun (oldProp, newProp) ->
+        mutate_on_element callbacks elem oldProp newProp)
       updated;
     List.iter (apply_to_element callbacks elem) created
 end
@@ -225,12 +231,12 @@ module DomNode = struct
   let children n = n.vdoms
 
   let replace elem oldChild newChild =
-    ignore (Web_node.insert_before elem newChild oldChild);
-    ignore (Web_node.remove_child elem oldChild)
+    ignore (Web.Node.insert_before elem newChild oldChild);
+    ignore (Web.Node.remove_child elem oldChild)
 
   let flip elem first second =
-    ignore (Web_node.remove_child elem second);
-    ignore (Web_node.insert_before elem second first)
+    ignore (Web.Node.remove_child elem second);
+    ignore (Web.Node.insert_before elem second first)
 end
 
 module LazyGen = struct
@@ -249,9 +255,7 @@ module Node = struct
     | CommentNode of string
     | Text of string
     | Node of ('msg, 'msg t) DomNode.t
-    (* key, gen, cache *)
     | LazyGen of 'msg t LazyGen.t
-    (* tagger, vdom *)
     | Tagger of
         ('msg ApplicationCallbacks.t ref -> 'msg ApplicationCallbacks.t ref)
         * 'msg t
@@ -288,25 +292,18 @@ module Node = struct
     | LazyGen lzy -> to_string (lzy.gen ())
     | Tagger (_, vdom) -> to_string vdom
 
-  let apply_properties callbacks elem oldProperties newProperties =
-    Property.apply callbacks elem 0 oldProperties newProperties
-
-  let init_properties callbacks newChild newProperties =
-    ignore
-      (apply_properties callbacks newChild
-         (Property.mapEmpty newProperties)
-         newProperties)
-
   let rec create_dom_node callbacks newNode =
     let open DomNode in
-
     let newChild =
       Web.Document.create_element ~namespace:newNode.namespace newNode.tag_name
     in
 
-    init_properties callbacks newChild newNode.props;
+    ignore
+      (Property.apply callbacks newChild
+         (Property.map_empty newNode.props)
+         newNode.props);
 
-    let grandChildren = Web_node.child_nodes newChild in
+    let grandChildren = Web.Node.child_nodes newChild in
 
     patch_nodes callbacks newChild grandChildren 0 [] newNode.vdoms;
 
@@ -317,9 +314,7 @@ module Node = struct
         let oldChild = elems.(idx) in
         let newChild = create_dom_node callbacks newNode in
         DomNode.replace elem oldChild newChild
-    | _ ->
-        failwith
-          "Node replacement should never be passed anything but a node itself"
+    | _ -> failwith "Node replacement must only be passed a Node"
 
   and create_element callbacks = function
     | CommentNode s -> Web.Document.create_comment s
@@ -338,35 +333,35 @@ module Node = struct
           replace callbacks elem elems idx newNode
         else
           let child = elems.(idx) in
-          let grandChildren = Web_node.child_nodes child in
-          apply_properties callbacks child old.props nw.props;
+          let grandChildren = Web.Node.child_nodes child in
+          Property.apply callbacks child old.props nw.props;
           patch_nodes callbacks child grandChildren 0 old.vdoms nw.vdoms
     | _ -> failwith "Non-node passed to mutate"
 
+  (** Rectify the differences between two VDom Node lists *)
   and patch_nodes callbacks elem elems idx oldVNodes newVNodes =
     match (oldVNodes, newVNodes) with
+    | [], [] -> ()
     | Tagger (_, oldVdom) :: oldRest, _ ->
         patch_nodes callbacks elem elems idx (oldVdom :: oldRest) newVNodes
     | oldNode :: oldRest, Tagger (newTagger, newVdom) :: newRest ->
         patch_nodes (newTagger callbacks) elem elems idx [ oldNode ] [ newVdom ];
         patch_nodes callbacks elem elems (idx + 1) oldRest newRest
-    | [], [] -> ()
     | [], newNode :: newRest ->
         let newChild = create_element callbacks newNode in
-        ignore (Web_node.append_child elem newChild);
+        ignore (Web.Node.append_child elem newChild);
         patch_nodes callbacks elem elems (idx + 1) [] newRest
     | _ :: oldRest, [] ->
         let child = elems.(idx) in
-        ignore (Web_node.remove_child elem child);
+        ignore (Web.Node.remove_child elem child);
         patch_nodes callbacks elem elems idx oldRest []
     | CommentNode oldS :: oldRest, CommentNode newS :: newRest when oldS = newS
       ->
         patch_nodes callbacks elem elems (idx + 1) oldRest newRest
     | Text oldText :: oldRest, Text newText :: newRest ->
-        (if oldText = newText then ()
-         else
+        (if oldText <> newText then
            let child = elems.(idx) in
-           Web_node.set_value child newText);
+           Web.Node.set_value child newText);
         patch_nodes callbacks elem elems (idx + 1) oldRest newRest
     | LazyGen oldLazy :: oldRest, LazyGen newLazy :: newRest -> (
         if LazyGen.equals oldLazy newLazy then (
@@ -384,7 +379,7 @@ module Node = struct
           | LazyGen olderLazy :: olderRest, _
             when LazyGen.equals olderLazy newLazy ->
               let oldChild = elems.(idx) in
-              ignore (Web_node.remove_child elem oldChild);
+              ignore (Web.Node.remove_child elem oldChild);
               let oldVdom = !(olderLazy.cache) in
               newLazy.cache := oldVdom;
               patch_nodes callbacks elem elems (idx + 1) olderRest newRest
@@ -393,7 +388,7 @@ module Node = struct
               let newVdom = newLazy.gen () in
               newLazy.cache := newVdom;
               let newChild = create_element callbacks newVdom in
-              ignore (Web_node.insert_before elem newChild oldChild);
+              ignore (Web.Node.insert_before elem newChild oldChild);
               patch_nodes callbacks elem elems (idx + 1) oldVNodes newRest
           | _ ->
               let oldVdom = !(oldLazy.cache) in
@@ -419,13 +414,13 @@ module Node = struct
           | Node olderNode :: olderRest, _ when DomNode.equals olderNode newNode
             ->
               let oldChild = elems.(idx) in
-              ignore (Web_node.remove_child elem oldChild);
+              ignore (Web.Node.remove_child elem oldChild);
               patch_nodes callbacks elem elems (idx + 1) olderRest newRest
           | _, Node newerNode :: _ when DomNode.equals oldNode newerNode ->
               let oldChild = elems.(idx) in
               let newChild = create_element callbacks (Node newNode) in
               let _attachedChild =
-                Web_node.insert_before elem newChild oldChild
+                Web.Node.insert_before elem newChild oldChild
               in
               patch_nodes callbacks elem elems (idx + 1) oldVNodes newRest
           | _ ->
@@ -438,7 +433,7 @@ module Node = struct
         patch_nodes callbacks elem elems (idx + 1) oldRest newRest
 
   let patch_nodes_into_element callbacks elem oldVNodes newVNodes =
-    let elems = Web_node.child_nodes elem in
+    let elems = Web.Node.child_nodes elem in
     patch_nodes callbacks elem elems 0 oldVNodes newVNodes;
     newVNodes
 
