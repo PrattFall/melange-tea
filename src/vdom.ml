@@ -1,12 +1,25 @@
-type 'msg systemMessage =
-  | Render
-  | AddRenderMsg of 'msg
-  | RemoveRenderMsg of 'msg
+module SystemMessage = struct
+  type 'msg t = Render | AddRenderMsg of 'msg | RemoveRenderMsg of 'msg
 
-type 'msg applicationCallbacks = {
-  enqueue : 'msg -> unit;
-  on : 'msg systemMessage -> unit;
-}
+  let wrap_callbacks_on func = function
+    | Render -> Render
+    | AddRenderMsg msg -> AddRenderMsg (func msg)
+    | RemoveRenderMsg msg -> RemoveRenderMsg (func msg)
+end
+
+module ApplicationCallbacks = struct
+  type 'msg t = { enqueue : 'msg -> unit; on : 'msg SystemMessage.t -> unit }
+
+  let wrap_callbacks func callbacks =
+    Obj.magic ref
+      {
+        enqueue = (fun msg -> !callbacks.enqueue (func msg));
+        on =
+          (fun smsg ->
+            let new_smsg = SystemMessage.wrap_callbacks_on func smsg in
+            !callbacks.on new_smsg);
+      }
+end
 
 module EventHandler = struct
   type 'msg t =
@@ -19,7 +32,12 @@ module EventHandler = struct
   }
 
   let emptyEventCB _ev : 'e Web_event.callback option = None
-  let eventHandler callbacks cb ev = Option.iter !callbacks.enqueue (!cb ev)
+
+  let eventHandler callbacks cb ev =
+    let open ApplicationCallbacks in
+    Option.iter !callbacks.enqueue (!cb ev)
+
+  let callback key fn = EventHandlerCallback (key, fn)
 
   let get_callback = function
     | EventHandlerCallback (_, cb) -> cb
@@ -31,10 +49,10 @@ module EventHandler = struct
     | EventHandlerMsg lmsg, EventHandlerMsg rmsg -> lmsg = rmsg
     | _ -> false
 
-  let register callbacks elem name handlerType =
+  let register callbacks elem event_name handlerType =
     let cb = ref (get_callback handlerType) in
     let handler = eventHandler callbacks cb in
-    Web_node.add_event_listener elem name handler;
+    Web_node.add_event_listener elem event_name handler;
     Some { handler; cb }
 
   let unregister (elem : 'a Dom.node_like) (event_name : string) :
@@ -159,7 +177,6 @@ module Property = struct
               "Passed a non-Style to a new Style as a Mutations while the old \
                Style is not actually a style!")
     | _ -> ()
-  (* failwith "This will never be called because it is gated" *)
 
   let apply callbacks elem _idx oldProperties newProperties =
     let updatedNew, created =
@@ -236,7 +253,7 @@ module Node = struct
     | LazyGen of 'msg t LazyGen.t
     (* tagger, vdom *)
     | Tagger of
-        ('msg applicationCallbacks ref -> 'msg applicationCallbacks ref)
+        ('msg ApplicationCallbacks.t ref -> 'msg ApplicationCallbacks.t ref)
         * 'msg t
 
   let empty = CommentNode ""
@@ -428,30 +445,7 @@ module Node = struct
     patch_nodes_into_element callbacks elem [ oldVNode ] [ newVNode ]
 end
 
-let wrapCallbacks_On : type a b. (a -> b) -> a systemMessage -> b systemMessage
-    =
- fun func -> function
-  | Render -> Render
-  | AddRenderMsg msg -> AddRenderMsg (func msg)
-  | RemoveRenderMsg msg -> RemoveRenderMsg (func msg)
-
-let wrapCallbacks :
-    type a b.
-    (a -> b) -> b applicationCallbacks ref -> a applicationCallbacks ref =
- fun func callbacks ->
-  Obj.magic ref
-    {
-      enqueue =
-        (fun (msg : a) ->
-          let new_msg = func msg in
-          !callbacks.enqueue new_msg);
-      on =
-        (fun smsg ->
-          let new_smsg = wrapCallbacks_On func smsg in
-          !callbacks.on new_smsg);
-    }
-
 let map : ('a -> 'b) -> 'a Node.t -> 'b Node.t =
  fun func vdom ->
-  let tagger = wrapCallbacks func in
+  let tagger = ApplicationCallbacks.wrap_callbacks func in
   Tagger (Obj.magic tagger, Obj.magic vdom)

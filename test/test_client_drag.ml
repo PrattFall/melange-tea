@@ -28,10 +28,7 @@ let updateHelp model = function
   | DragAt xy ->
       {
         position = model.position;
-        drag =
-          (match model.drag with
-          | None -> None
-          | Some drag -> Some { drag with current = xy });
+        drag = Option.map (fun drag -> { drag with current = xy }) model.drag;
       }
   | DragEnd _ -> { position = getPosition model; drag = None }
 
@@ -49,8 +46,7 @@ let px number = string_of_int number ^ "px"
 
 let onMouseDown =
   onCB "mousedown" "" (fun ev ->
-      Json.Decoder.decodeEvent (Json.Decoder.map dragStart Mouse.position) ev
-      |> Result.to_option)
+      ev |> Mouse.position |> dragStart |> Option.some)
 
 let view model =
   let realPosition = getPosition model in

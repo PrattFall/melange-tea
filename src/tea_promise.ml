@@ -1,19 +1,21 @@
 let cmd promise tagger =
-  let open Vdom in
+  let open Vdom.ApplicationCallbacks in
+
   Tea_cmd.call (function callbacks ->
       let _ =
         promise
         |> Js.Promise.then_ (function res ->
                (match tagger res with
                | Some msg ->
-                   let () = !callbacks.enqueue msg in
+                   !callbacks.enqueue msg;
                    Js.Promise.resolve ()
                | None -> Js.Promise.resolve ()))
       in
       ())
 
 let result promise msg =
-  let open Vdom in
+  let open Vdom.ApplicationCallbacks in
+
   Tea_cmd.call (function callbacks ->
       let enq result = !callbacks.enqueue (msg result) in
       let _ =

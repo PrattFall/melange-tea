@@ -1,7 +1,8 @@
 type t = { time : Tea_time.t; delta : Tea_time.t }
 
 let every ?(key = "") tagger =
-  let open Vdom in
+  let open Vdom.ApplicationCallbacks in
+
   let enableCall callbacks =
     (* let () = Js.log ("rAF", "enable") in *)
     let last_time = ref (Web.Date.now ()) in

@@ -27,7 +27,7 @@ let view model =
     [
       span [ style "text-weight" "bold" ] [ text (string_of_int model) ];
       br [];
-      view_button "Increment" (if model >= 3 then Decrement else Increment);
+      view_button "Increment" (if model <= 3 then Increment else Decrement);
       br [];
       view_button "Decrement" Decrement;
       br [];

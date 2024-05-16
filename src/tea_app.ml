@@ -46,7 +46,7 @@ external makeProgramInterface :
 [@@mel.obj]
 
 let programStateWrapper initModel pump shutdown =
-  let open Vdom in
+  let open Vdom.ApplicationCallbacks in
   let model = ref initModel in
   let callbacks =
     ref
@@ -61,7 +61,7 @@ let programStateWrapper initModel pump shutdown =
   let rec handler msg =
     match !pending with
     | None -> (
-        pending := (Some [] [@explicit_arity]);
+        pending := Some [];
         let newModel = pumperInterface.handleMsg !model msg in
         model := newModel;
         match !pending with
@@ -69,12 +69,11 @@ let programStateWrapper initModel pump shutdown =
             failwith
               "INVALID message queue state, should never be None during \
                message processing!"
-        | ((Some []) [@explicit_arity]) -> pending := None
-        | ((Some msgs) [@explicit_arity]) ->
+        | Some [] -> pending := None
+        | Some msgs ->
             pending := None;
             List.iter handler (List.rev msgs))
-    | ((Some msgs) [@explicit_arity]) ->
-        pending := (Some (msg :: msgs) [@explicit_arity])
+    | Some msgs -> pending := Some (msg :: msgs)
   in
   let render_events = ref [] in
   let finalizedCBs =
@@ -83,13 +82,13 @@ let programStateWrapper initModel pump shutdown =
         on =
           (function
           | Render -> List.iter handler !render_events
-          | ((AddRenderMsg msg) [@explicit_arity]) ->
+          | AddRenderMsg msg ->
               render_events := List.append !render_events [ msg ]
-          | ((RemoveRenderMsg msg) [@explicit_arity]) ->
+          | RemoveRenderMsg msg ->
               render_events := List.filter (fun mg -> msg != mg) !render_events);
       }
-       : 'msg Vdom.applicationCallbacks)
-      : 'msg Vdom.applicationCallbacks)
+       : 'msg Vdom.ApplicationCallbacks.t)
+      : 'msg Vdom.ApplicationCallbacks.t)
   in
   callbacks := finalizedCBs;
 
@@ -122,11 +121,7 @@ let programLoop update view subscriptions initModel initCmd = function
             (fun () ->
               Tea_cmd.run callbacks initCmd;
               handleSubscriptionChange initModel);
-          render_string =
-            (fun model ->
-              let vdom = view model in
-              let rendered = Vdom.Node.to_string vdom in
-              rendered);
+          render_string = (fun model -> Vdom.Node.to_string (view model));
           handleMsg =
             (fun model msg ->
               let newModel, cmd = update model msg in
@@ -165,7 +160,7 @@ let programLoop update view subscriptions initModel initCmd = function
               (* (* context needed for this *) *)
               (* let realtimeRendering = false in *)
               (* if realtimeRendering then ( *)
-              (*   nextFrameID := (Some (-1) [@explicit_arity]); *)
+              (*   nextFrameID := (Some (-1) ); *)
               (*   doRender 16) *)
               (* else *)
               let id = Web.Window.request_animation_frame doRender in
@@ -190,7 +185,7 @@ let programLoop update view subscriptions initModel initCmd = function
           clearPnode ();
           Tea_cmd.run callbacks initCmd;
           handleSubscriptionChange !latestModel;
-          nextFrameID := (Some (-1) [@explicit_arity]);
+          nextFrameID := Some (-1);
           doRender 16
         in
 

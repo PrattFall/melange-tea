@@ -30,20 +30,20 @@ type header = Header of string * string
 type 'res expect = Expect of bodyType * (response -> ('res, string) result)
 
 module RequestEvents = struct
-    type 'msg t = {
-      onreadystatechange :
-        ('msg Vdom.applicationCallbacks ref ->
-        Web.XMLHttpRequest.event_readystatechange ->
-        unit)
-        option;
-      onprogress :
-        ('msg Vdom.applicationCallbacks ref ->
-        Web.XMLHttpRequest.event_progress ->
-        unit)
-        option;
-    }
+  type 'msg t = {
+    onreadystatechange :
+      ('msg Vdom.ApplicationCallbacks.t ref ->
+      Web.XMLHttpRequest.event_readystatechange ->
+      unit)
+      option;
+    onprogress :
+      ('msg Vdom.ApplicationCallbacks.t ref ->
+      Web.XMLHttpRequest.event_progress ->
+      unit)
+      option;
+  }
 
-    let empty = { onreadystatechange = None; onprogress = None }
+  let empty = { onreadystatechange = None; onprogress = None }
 end
 
 type 'res rawRequest = {
@@ -95,13 +95,9 @@ let toTask (Request (request, _maybeEvents)) =
       let enqResOk result = enqRes (Ok result) in
       let xhr = Web.XMLHttpRequest.create () in
       let setEvent ev cb = ev cb xhr in
-      let () =
-        setEvent Web.XMLHttpRequest.set_onerror (enqResError NetworkError)
-      in
-      let () =
-        setEvent Web.XMLHttpRequest.set_ontimeout (enqResError Timeout)
-      in
-      let () = setEvent Web.XMLHttpRequest.set_onabort (enqResError Aborted) in
+      setEvent Web.XMLHttpRequest.set_onerror (enqResError NetworkError);
+      setEvent Web.XMLHttpRequest.set_ontimeout (enqResError Timeout);
+      setEvent Web.XMLHttpRequest.set_onabort (enqResError Aborted);
       let () =
         setEvent Web.XMLHttpRequest.set_onload (fun _ev ->
             let open Web.XMLHttpRequest in
@@ -133,18 +129,16 @@ let toTask (Request (request, _maybeEvents)) =
         let setHeader (Header (k, v)) =
           Web.XMLHttpRequest.set_request_header k v xhr
         in
-        let () = List.iter setHeader headers in
-        let () = Web.XMLHttpRequest.set_responseType typ xhr in
+        List.iter setHeader headers;
+        Web.XMLHttpRequest.set_responseType typ xhr;
         let () =
           match timeout with
           | None -> ()
           | Some t -> Web.XMLHttpRequest.set_timeout t xhr
         in
-        let () = Web.XMLHttpRequest.set_withCredentials withCredentials xhr in
-        ()
+        Web.XMLHttpRequest.set_withCredentials withCredentials xhr
       in
-      let () = Web.XMLHttpRequest.send body xhr in
-      ())
+      Web.XMLHttpRequest.send body xhr)
 
 let send resultToMessage (Request (request, maybeEvents)) =
   let module StringMap = Map.Make (String) in
@@ -155,7 +149,7 @@ let send resultToMessage (Request (request, maybeEvents)) =
 
   Tea_cmd.call (fun callbacks ->
       let enqRes result _ev =
-        let open Vdom in
+        let open Vdom.ApplicationCallbacks in
         !callbacks.enqueue (resultToMessage result)
       in
       let enqResError result = enqRes (Error result) in
@@ -172,19 +166,12 @@ let send resultToMessage (Request (request, maybeEvents)) =
               | None -> ()
               | Some v -> thenDo (v callbacks)
             in
-            let () =
-              mayCB (setEvent set_onreadystatechange) onreadystatechange
-            in
-            (* let () = mayCB (setEvent set_onProgress) onprogress in *)
-            ()
+            mayCB (setEvent set_onreadystatechange) onreadystatechange
+        (* let () = mayCB (setEvent set_onProgress) onprogress in *)
       in
-      let () =
-        setEvent Web.XMLHttpRequest.set_onerror (enqResError NetworkError)
-      in
-      let () =
-        setEvent Web.XMLHttpRequest.set_ontimeout (enqResError Timeout)
-      in
-      let () = setEvent Web.XMLHttpRequest.set_onabort (enqResError Aborted) in
+      setEvent Web.XMLHttpRequest.set_onerror (enqResError NetworkError);
+      setEvent Web.XMLHttpRequest.set_ontimeout (enqResError Timeout);
+      setEvent Web.XMLHttpRequest.set_onabort (enqResError Aborted);
       let () =
         setEvent Web.XMLHttpRequest.set_onload (fun _ev ->
             let open Web.XMLHttpRequest in
@@ -216,18 +203,16 @@ let send resultToMessage (Request (request, maybeEvents)) =
         let setHeader (Header (k, v)) =
           Web.XMLHttpRequest.set_request_header k v xhr
         in
-        let () = List.iter setHeader headers in
-        let () = Web.XMLHttpRequest.set_responseType typ xhr in
+        List.iter setHeader headers;
+        Web.XMLHttpRequest.set_responseType typ xhr;
         let () =
           match timeout with
           | None -> ()
           | Some t -> Web.XMLHttpRequest.set_timeout t xhr
         in
-        let () = Web.XMLHttpRequest.set_withCredentials withCredentials xhr in
-        ()
+        Web.XMLHttpRequest.set_withCredentials withCredentials xhr
       in
-      let () = Web.XMLHttpRequest.send body xhr in
-      ())
+      Web.XMLHttpRequest.send body xhr)
 
 external encodeURIComponent : string -> string = "encodeURIComponent" [@@bs.val]
 
@@ -238,26 +223,6 @@ external decodeURIComponent : string -> string = "decodeURIComponent" [@@bs.val]
 let decodeUri str = try Some (decodeURIComponent str) with _ -> None
 
 module Progress = struct
-  (*
-  type bytesProgressed =
-    { bytes : int
-    ; bytesExpected : int
-    }
-
-  type ('data, 'parseFailData) t =
-    | NoProgress
-    (* SomeProgress (bytes, bytesExpected) *)
-    | SomeProgress of bytesProgressed
-    | FailProgress of 'parseFailData error
-    | DoneProgress of 'data
-
-  type ('msg, 'parseFailData) trackedRequest =
-    { request : 'msg rawRequest
-    ; toProgress : bytesProgressed -> 'msg
-    ; toError : 'parseFailData error -> 'msg
-    }
-  *)
-
   type t = { bytes : int; bytesExpected : int }
 
   let emptyProgress = { bytes = 0; bytesExpected = 0 }
@@ -270,24 +235,18 @@ module Progress = struct
     let onprogress =
       Some
         (fun callbacks ev ->
-          let open Vdom in
-          let lengthComputable =
-            let open Tea_json.Decoder in
-            match decodeValue (field "lengthComputable" bool) ev with
-            | Error _e -> false
-            | Ok v -> v
-          in
-          if lengthComputable then
-            let open Tea_json.Decoder in
-            let decoder =
-              map2
-                (fun bytes bytesExpected -> { bytes; bytesExpected })
-                (field "loaded" int) (field "total" int)
+          let open Vdom.ApplicationCallbacks in
+          if Web_event.length_computable ev then
+            let value =
+              {
+                bytes = Web_event.loaded ev;
+                bytesExpected = Web_event.total ev;
+              }
             in
-            match decodeValue decoder ev with
-            | Error _e -> ()
-            | Ok t -> !callbacks.enqueue (toMessage t))
+            !callbacks.enqueue (toMessage value))
     in
-    let events = match events with None -> RequestEvents.empty | Some e -> e in
+    let events =
+      match events with None -> RequestEvents.empty | Some e -> e
+    in
     Request (request, Some { events with onprogress })
 end

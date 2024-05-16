@@ -8,18 +8,15 @@ let nothing () = ()
 let performOpt (toOptionalMessage : 'value -> 'msg option)
     (((Task task) [@explicit_arity]) : ('value, never) t) : 'msg Tea_cmd.t =
   Tea_cmd.call (fun callbacks ->
-      let open Vdom in
+      let open Vdom.ApplicationCallbacks in
       let cb = function
-        | ((Error _e) [@explicit_arity]) ->
+        | Error _e ->
             failwith
-              ("ERROR:  Task perfom returned error of never! Should not happen!"
-              [@reason.raw_literal
-                "ERROR:  Task perfom returned error of never! Should not \
-                 happen!"])
-        | ((Ok v) [@explicit_arity]) -> (
+              "ERROR:  Task perfom returned error of never! Should not happen!"
+        | Ok v -> (
             match toOptionalMessage v with
             | None -> ()
-            | ((Some result) [@explicit_arity]) -> !callbacks.enqueue result)
+            | Some result -> !callbacks.enqueue result)
       in
       task cb)
 
@@ -29,9 +26,9 @@ let perform (toMessage : 'value -> 'msg) (task : ('value, never) t) :
 
 let attemptOpt
     (resultToOptionalMessage : ('succeed, 'fail) result -> 'msg option)
-    (((Task task) [@explicit_arity]) : ('succeed, 'fail) t) : 'msg Tea_cmd.t =
+    (Task task : ('succeed, 'fail) t) : 'msg Tea_cmd.t =
   Tea_cmd.call (fun callbacks ->
-      let open Vdom in
+      let open Vdom.ApplicationCallbacks in
       let cb value =
         match resultToOptionalMessage value with
         | None -> ()

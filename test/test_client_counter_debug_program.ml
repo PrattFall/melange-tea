@@ -14,11 +14,15 @@ let string_of_msg = function
 let init () = (4, Tea.Cmd.none)
 let subscriptions _ = Tea.Sub.none
 
-let update model = function
-  | Increment -> (model + 1, Tea.Cmd.none)
-  | Decrement -> (model - 1, Tea.Cmd.none)
-  | Reset -> (0, Tea.Cmd.none)
-  | Set v -> (v, Tea.Cmd.none)
+let update model msg =
+    let updated = match msg with
+      | Increment -> model + 1
+      | Decrement -> model - 1
+      | Reset -> 0
+      | Set v -> v
+    in
+
+    (updated, Tea.Cmd.none)
 
 let view_button title msg = button [ onClick msg ] [ text title ]
 

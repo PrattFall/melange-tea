@@ -1,8 +1,8 @@
 let render_event ?(key = "") msg =
-  let open Vdom in
+  let open Vdom.ApplicationCallbacks in
   let enableCall callbacks =
-    let () = callbacks.on (AddRenderMsg msg [@explicit_arity]) in
-    fun () -> callbacks.on (RemoveRenderMsg msg [@explicit_arity])
+    callbacks.on (AddRenderMsg msg);
+    fun () -> callbacks.on (RemoveRenderMsg msg)
   in
   Tea_sub.registration key enableCall
 
@@ -12,7 +12,7 @@ module LocalStorage = struct
   let inner mapper =
     nativeBinding (fun cb ->
         match Web.Window.get_local_storage () with
-        | None -> cb (Error "localStorage is not available" [@explicit_arity])
+        | None -> cb (Error "localStorage is not available")
         | ((Some value) [@explicit_arity]) ->
             cb (Ok (mapper value) [@explicit_arity]))
 

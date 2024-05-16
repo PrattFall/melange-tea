@@ -17,7 +17,7 @@ let notifyUrlChange () =
     !notifier
 
 let subscribe tagger =
-  let open Vdom in
+  let open Vdom.ApplicationCallbacks in
 
   let enableCall callbacks =
     let notifyHandler location = callbacks.enqueue (tagger location) in

@@ -20,11 +20,12 @@ let update model = function
 let view_button title msg = button [ onClick msg ] [ text title ]
 
 let view model =
+  let increment_action = if model >= 3 then Decrement else Increment in
   div []
     [
       span [ style "text-weight" "bold" ] [ text (string_of_int model) ];
       br [];
-      view_button "Increment" (if model >= 3 then Decrement else Increment);
+      view_button "Increment" increment_action;
       br [];
       view_button "Decrement" Decrement;
       br [];

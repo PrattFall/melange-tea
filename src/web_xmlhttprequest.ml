@@ -5,7 +5,7 @@ type event_abort = Web_json.t
 type event_error = Web_json.t
 type event_load = Web_json.t
 type event_loadstart = Web_json.t
-type event_progress = Web_json.t
+type event_progress = Dom.progressEvent
 type event_timeout = Web_json.t
 type event_loadend = Web_json.t
 type t

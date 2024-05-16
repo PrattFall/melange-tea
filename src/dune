@@ -1,7 +1,7 @@
 (library
  (name tea)
  (public_name melange_tea)
- (libraries melange melange.js melange.dom)
+ (libraries melange melange.js melange.dom melange-json)
  (modules :standard)
  (preprocess
   (pps melange.ppx))

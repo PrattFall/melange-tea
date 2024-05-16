@@ -72,8 +72,8 @@ let generate tagger (Generator genCmd) =
   Tea_cmd.call (fun callbacks ->
       let state = Random.get_state () in
       let genValue = genCmd state in
-      let () = Random.set_state state in
-      let open Vdom in
+      Random.set_state state;
+      let open Vdom.ApplicationCallbacks in
       !callbacks.enqueue (tagger genValue))
 
 (* Generate Values Manually *)

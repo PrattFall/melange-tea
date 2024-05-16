@@ -524,21 +524,21 @@ module Events = struct
         if options.stopPropagation then Web_event.stopPropagation event;
         if options.preventDefault then Web_event.preventDefault event;
 
-        event |> Tea_json.Decoder.decodeEvent decoder |> Result.to_option)
+        event |> decoder)
 
   let on ~(key : string) eventName decoder =
     onWithOptions ~key eventName defaultOptions decoder
 
-  let onCB eventName key cb = onCB eventName key cb
-  let onMsg eventName msg = onMsg eventName msg
+  let onCB = onCB
+  let onMsg = onMsg
 
-  let targetValue =
-    Tea_json.Decoder.at [ "target"; "value" ] Tea_json.Decoder.string
+  let targetValue event =
+    Web_event.target event |> Option.map Web_event.Target.value
 
-  let targetChecked =
-    Tea_json.Decoder.at [ "target"; "checked" ] Tea_json.Decoder.bool
+  let targetChecked event =
+    Web_event.target event |> Option.map Web_event.Target.checked
 
-  let keyCode = Tea_json.Decoder.field "keyCode" Tea_json.Decoder.int
+  let keyCode = Web_event.keyCode
 
   let preventDefaultOn ?(key = "") eventName decoder =
     onWithOptions ~key eventName
@@ -558,39 +558,30 @@ module Events = struct
 
   (** {1 Form helpers} *)
 
-  let onInputOpt ?(key = "") msg =
-    onCB "input" key (fun ev ->
-        match Web_event.target ev with
-        | None -> None
-        | Some target -> (
-            match Node.value target with
-            | None -> None
-            | Some value -> msg value))
+  let onInputOpt ?(key = "") (msg : string -> 'a option) =
+    onCB "input" key (fun (ev : 'e Dom.event_like) ->
+        ev |> Web_event.target
+        |. Option.bind (fun x -> Some (Web_event.Target.value x))
+        |> Option.map msg)
 
   let onInput ?(key = "") msg = onInputOpt ~key (fun ev -> Some (msg ev))
 
   let onCheckOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
-        match Web_event.target ev with
-        | None -> None
-        | Some target -> (
-            match Node.checked target with
-            | None -> None
-            | Some value -> msg value))
+        ev |> Web_event.target
+        |. Option.bind (fun x -> Some (Web_event.Target.checked x))
+        |> Option.map msg)
 
   let onCheck ?(key = "") msg = onCheckOpt ~key (fun ev -> Some (msg ev))
 
   let onChangeOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
-        match Web_event.target ev with
-        | None -> None
-        | Some target -> (
-            match Node.value target with
-            | None -> None
-            | Some value -> msg value))
+        ev |> Web_event.target
+        |. Option.bind (fun x -> Some (Web_event.Target.value x))
+        |> Option.map msg)
 
   let onChange ?(key = "") msg = onChangeOpt ~key (fun ev -> Some (msg ev))
-  let onSubmit msg = preventDefaultOn "submit" (Tea_json.Decoder.succeed msg)
+  let onSubmit msg = preventDefaultOn "submit" (fun _ -> msg)
 
   (** {1 Focus helpers} *)
 

@@ -1,102 +1,94 @@
+type 'msg applicationCallbacks = 'msg Vdom.ApplicationCallbacks.t
+
 type 'msg t =
   | NoSub : _ t
   | Batch : 'msg t list -> 'msg t
   | Registration :
       string
-      * ('msg Vdom.applicationCallbacks ref -> unit -> unit)
+      * ('msg applicationCallbacks ref -> unit -> unit)
       * (unit -> unit) option ref
       -> 'msg t
   | Mapper :
-      ('msg Vdom.applicationCallbacks ref ->
-      'msgB Vdom.applicationCallbacks ref)
+      ('msg applicationCallbacks ref -> 'msgB applicationCallbacks ref)
       * 'msgB t
       -> 'msg t
 
-type 'msg applicationCallbacks = 'msg Vdom.applicationCallbacks
-
 let none = NoSub
-let batch subs = (Batch subs [@explicit_arity])
+let batch subs = Batch subs
 
 let registration key enableCall =
-  (Registration (key, (fun callbacks -> enableCall !callbacks), ref None)
-  [@implicit_arity])
+  Registration (key, (fun callbacks -> enableCall !callbacks), ref None)
 
 let map msgMapper sub =
-  let func callbacks = Vdom.wrapCallbacks msgMapper callbacks in
-  (Mapper (func, sub) [@implicit_arity])
+  let func callbacks =
+    Vdom.ApplicationCallbacks.wrap_callbacks msgMapper callbacks
+  in
+  Mapper (func, sub)
 
-let mapFunc func sub = (Mapper (func, sub) [@implicit_arity])
+let mapFunc func sub = Mapper (func, sub)
 
 let rec run :
     type msgOld msgNew.
-    msgOld Vdom.applicationCallbacks ref ->
-    msgNew Vdom.applicationCallbacks ref ->
+    msgOld applicationCallbacks ref ->
+    msgNew applicationCallbacks ref ->
     msgOld t ->
     msgNew t ->
     msgNew t =
  fun oldCallbacks newCallbacks oldSub newSub ->
-  let rec enable : type msg. msg Vdom.applicationCallbacks ref -> msg t -> unit
-      =
+  let rec enable : type msg. msg applicationCallbacks ref -> msg t -> unit =
    fun callbacks -> function
     | NoSub -> ()
-    | ((Batch []) [@explicit_arity]) -> ()
-    | ((Batch subs) [@explicit_arity]) -> List.iter (enable callbacks) subs
-    | ((Mapper (mapper, sub)) [@implicit_arity]) ->
+    | Batch [] -> ()
+    | Batch subs -> List.iter (enable callbacks) subs
+    | Mapper (mapper, sub) ->
         let subCallbacks = mapper callbacks in
         enable subCallbacks sub
-    | ((Registration (_key, enCB, diCB)) [@implicit_arity]) ->
-        diCB := (Some (enCB callbacks) [@explicit_arity])
+    | Registration (_key, enCB, diCB) -> diCB := Some (enCB callbacks)
   in
-  let rec disable : type msg. msg Vdom.applicationCallbacks ref -> msg t -> unit
-      =
+  let rec disable : type msg. msg applicationCallbacks ref -> msg t -> unit =
    fun callbacks -> function
     | NoSub -> ()
-    | ((Batch []) [@explicit_arity]) -> ()
-    | ((Batch subs) [@explicit_arity]) -> List.iter (disable callbacks) subs
-    | ((Mapper (mapper, sub)) [@implicit_arity]) ->
+    | Batch [] -> ()
+    | Batch subs -> List.iter (disable callbacks) subs
+    | Mapper (mapper, sub) ->
         let subCallbacks = mapper callbacks in
         disable subCallbacks sub
-    | ((Registration (_key, _enCB, diCB)) [@implicit_arity]) -> (
+    | Registration (_key, _enCB, diCB) -> (
         match !diCB with
         | None -> ()
-        | ((Some cb) [@explicit_arity]) ->
-            let () = diCB := None in
+        | Some cb ->
+            diCB := None;
             cb ())
   in
-  match[@ocaml.warning "-4"] (oldSub, newSub) with
+  match (oldSub, newSub) with
   | NoSub, NoSub -> newSub
-  | ( ((Registration (oldKey, _oldEnCB, oldDiCB)) [@implicit_arity]),
-      ((Registration (newKey, _newEnCB, newDiCB)) [@implicit_arity]) )
+  | ( Registration (oldKey, _oldEnCB, oldDiCB),
+      Registration (newKey, _newEnCB, newDiCB) )
     when oldKey = newKey ->
-      let () = newDiCB := !oldDiCB in
+      newDiCB := !oldDiCB;
       newSub
-  | ( ((Mapper (oldMapper, oldSubSub)) [@implicit_arity]),
-      ((Mapper (newMapper, newSubSub)) [@implicit_arity]) ) ->
+  | Mapper (oldMapper, oldSubSub), Mapper (newMapper, newSubSub) ->
       let olderCallbacks = oldMapper oldCallbacks in
       let newerCallbacks = newMapper newCallbacks in
-      let _newerSubSub =
-        run olderCallbacks newerCallbacks oldSubSub newSubSub
-      in
+      ignore (run olderCallbacks newerCallbacks oldSubSub newSubSub);
       newSub
-  | ((Batch oldSubs) [@explicit_arity]), ((Batch newSubs) [@explicit_arity]) ->
+  | Batch oldSubs, Batch newSubs ->
       let rec aux oldList newList =
         match (oldList, newList) with
         | [], [] -> ()
         | [], newSubSub :: newRest ->
-            let () = enable newCallbacks newSubSub in
+            enable newCallbacks newSubSub;
             aux [] newRest
         | oldSubSub :: oldRest, [] ->
-            let () = disable oldCallbacks oldSubSub in
+            disable oldCallbacks oldSubSub;
             aux oldRest []
         | oldSubSub :: oldRest, newSubSub :: newRest ->
-            let _newerSubSub =
-              run oldCallbacks newCallbacks oldSubSub newSubSub
-            in
+            ignore (run oldCallbacks newCallbacks oldSubSub newSubSub);
             aux oldRest newRest
       in
-      let () = aux oldSubs newSubs in
+      aux oldSubs newSubs;
       newSub
   | oldS, newS ->
-      let () = disable oldCallbacks oldS in
-      let () = enable newCallbacks newS in
+      disable oldCallbacks oldS;
+      enable newCallbacks newS;
       newSub

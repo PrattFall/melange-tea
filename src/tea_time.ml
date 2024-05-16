@@ -8,7 +8,7 @@ type t = float
      | Delay of t * (unit -> 'msg) *)
 
 let every ~key interval tagger =
-  let open Vdom in
+  let open Vdom.ApplicationCallbacks in
   let enableCall callbacks =
     let id =
       Web.Window.set_interval
@@ -27,7 +27,7 @@ let delay msTime msg =
       let _unhandledID =
         Web.Window.set_timeout
           (fun () ->
-            let open Vdom in
+            let open Vdom.ApplicationCallbacks in
             !callbacks.enqueue msg)
           msTime
       in
