@@ -4,7 +4,7 @@ import melangePlugin from "vite-plugin-melange";
 export default defineConfig({
   plugins: [
     melangePlugin({
-      emitDir: "test",
+      emitDir: "examples",
       buildCommand: "opam exec -- dune build",
       watchCommand: "opam exec -- dune build --watch",
     })

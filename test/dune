@@ -1,7 +1,0 @@
-(melange.emit
- (target output)
- (alias output)
- (modules :standard)
- (libraries melange melange.dom melange.belt melange_tea)
- (preprocess (pps melange.ppx))
- (module_systems es6))
