@@ -4,14 +4,21 @@
 <head>
   <meta charset="utf-8">
   <title>Testing</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-  <div>
-    All code is available on <a href="https://github.com/PrattFall/melange-tea">github</a>.
-    <div id="buttons"></div>
-  </div>
-  <div id="content" style="width:49%;display:inline-block;vertical-align:top;"></div>
+  <header>
+    <div class="content-width">
+      All code is available on <a href="https://github.com/PrattFall/melange-tea">github</a>.
+    </div>
+  </header>
+  <main>
+    <div class="content-width flex">
+      <aside id="buttons"></aside>
+      <div id="content" style="width:49%;display:inline-block;vertical-align:top;"></div>
+    </div>
+  </main>
   <script src="/examples/main.ml" type="module"></script>
 </body>
 

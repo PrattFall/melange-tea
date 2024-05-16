@@ -1,0 +1,48 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  font-family: sans-serif;
+}
+
+.content-width {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.flex {
+  display: flex;
+  gap: .4em;
+}
+
+main {
+  height: 100%;
+}
+
+header {
+  padding: 1em 1em;
+  background-color: rgba(200,200,240,1);
+  margin-bottom: .5em;
+}
+
+#buttons {
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: .4em;
+  padding: .4em;
+}
+
+#buttons button {
+  padding: .4em 1em;
+  font-weight: bold;
+  font-family: sans-serif;
+}
+
+#content {
+  padding: 1em 1.5em;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  flex-grow: 1;
+}
