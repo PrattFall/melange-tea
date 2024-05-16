@@ -1,6 +1,5 @@
 let cmd promise tagger =
   let open Vdom.ApplicationCallbacks in
-
   Tea_cmd.call (function callbacks ->
       let _ =
         promise
@@ -15,16 +14,14 @@ let cmd promise tagger =
 
 let result promise msg =
   let open Vdom.ApplicationCallbacks in
-
   Tea_cmd.call (function callbacks ->
       let enq result = !callbacks.enqueue (msg result) in
-      let _ =
-        promise
-        |> Js.Promise.then_ (function res ->
-               let resolve = enq (Ok res) in
-               Js.Promise.resolve resolve)
-        |> Js.Promise.catch (function _ ->
-               let reject = enq (Error "error in promise") in
-               Js.Promise.resolve reject)
-      in
-      ())
+      ignore
+        Js.Promise.(
+          promise
+          |> then_ (function res ->
+                 let resolve = enq (Ok res) in
+                 Js.Promise.resolve resolve)
+          |> catch (function _ ->
+                 let reject = enq (Error "error in promise") in
+                 Js.Promise.resolve reject)))

@@ -30,11 +30,11 @@ For now I am attempting to follow TEA/[The Elm Architecture](https://guide.elm-l
 - Changed the `test` code to use Vite for rendering
 - Replaced Tea.Html with Tea.Html2's code. Fully embracing the current Elm architecture for now before making other changes.
     - This will break some people's older projects if they update to melange + melange-tea
+- Removed the XMLHttpRequest-related code in favor of external tools (like [melange-fetch](https://github.com/melange-community/melange-fetch))
 
 ### Proposed
 
 - Copy Elm's `Browser` module structure
-- Remove the XMLHttpRequest-related code or at least port it to fetch (either custom or using `melange-fetch`)
 - Add Style and Attribute constructors (An example would be the `feliz` project for Fable)
     - Removes the need for so many string literals everywhere (fewer chances of misspelling mistakes and such)
 - Make `classes` actually use the `classList` property

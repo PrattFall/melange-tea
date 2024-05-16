@@ -5,7 +5,6 @@ module Date = Web_date
 module Window = Web_window
 module Location = Web_location
 module Json = Web_json
-module XMLHttpRequest = Web_xmlhttprequest
 module FormData = Web_formdata
 
 let polyfills () =
