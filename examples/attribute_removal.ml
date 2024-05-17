@@ -19,7 +19,7 @@ let lang l is_selected =
   li
     [
       onClick (Select l);
-      (if is_selected then raw "" "data-lang" l else noProp);
+      (if is_selected then raw "data-lang" l else noProp);
       (* TODO: combine style attributes *)
       (if is_selected then style "border" "1px solid black" else style "color" "blue");
     ]

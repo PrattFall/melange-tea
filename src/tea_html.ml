@@ -367,9 +367,9 @@ module Attributes = struct
     |> List.map (fun (fst, _snd) -> fst)
     |> String.concat " " |> class'
 
-  let raw = attribute
+  let raw = Vdom.Property.attribute
   let id str = prop "id" str
-  let title str = attribute "" "title" str
+  let title str = raw "title" str
   let hidden b = if b then prop "hidden" "hidden" else noProp
 
   (** {1 Inputs} *)
@@ -379,55 +379,55 @@ module Attributes = struct
   let defaultValue str = prop "defaultValue" str
   let checked b = if b then prop "checked" "checked" else noProp
   let placeholder str = prop "placeholder" str
-  let selected b = if b then attribute "" "selected" "true" else noProp
+  let selected b = if b then raw "selected" "true" else noProp
 
   (** {1 Input helpers} *)
 
-  let accept c = attribute "" "accept" c
-  let acceptCharset c = attribute "" "accept-charset" c
+  let accept c = attribute "accept" c
+  let acceptCharset c = attribute "accept-charset" c
   let action a = prop "action" a
   let autocomplete b = prop "autocomplete" (if b then "on" else "off")
   let autofocus b = if b then prop "autofocus" "autofocus" else noProp
-  let disabled b = if b then attribute "" "disabled" "true" else noProp
-  let enctype encoding = attribute "" "enctype" encoding
-  let formaction url = attribute "" "formaction" url
-  let list value = attribute "" "list" value
-  let minlength n = attribute "" "minlength" (string_of_int n)
-  let maxlength n = attribute "" "maxlength" (string_of_int n)
+  let disabled b = if b then attribute "disabled" "true" else noProp
+  let enctype encoding = attribute "enctype" encoding
+  let formaction url = attribute "formaction" url
+  let list value = attribute "list" value
+  let minlength n = attribute "minlength" (string_of_int n)
+  let maxlength n = attribute "maxlength" (string_of_int n)
   let method' m = prop "method" m
   let multiple b = if b then prop "multiple" "multiple" else noProp
   let name str = prop "name" str
   let novalidate b = if b then prop "novalidate" "novalidate" else noProp
   let pattern p = prop "pattern" p
-  let readonly b = if b then attribute "" "readonly" "readonly" else noProp
-  let required b = if b then attribute "" "required" "required" else noProp
-  let size n = attribute "" "size" (string_of_int n)
+  let readonly b = if b then attribute "readonly" "readonly" else noProp
+  let required b = if b then attribute "required" "required" else noProp
+  let size n = attribute "size" (string_of_int n)
   let for' str = prop "htmlFor" str
-  let form value = attribute "" "form" value
+  let form value = attribute "form" value
 
   (** {1 Input ranges} *)
 
-  let max value = attribute "" "max" value
-  let min value = attribute "" "min" value
-  let step value = attribute "" "step" value
+  let max value = attribute "max" value
+  let min value = attribute "min" value
+  let step value = attribute "step" value
 
   (** {1 Textarea} *)
 
-  let cols n = attribute "" "cols" (string_of_int n)
-  let rows n = attribute "" "rows" (string_of_int n)
+  let cols n = attribute "cols" (string_of_int n)
+  let rows n = attribute "rows" (string_of_int n)
   let wrap value = prop "wrap" value
 
   (** {1 Links and areas} *)
 
   (* `href` is actually an attribute, not a property, but need it here for Elm compat... *)
-  let href str = attribute "" "href" str
+  let href str = attribute "href" str
   let target t = prop "target" t
   let download b = if b then prop "download" "" else noProp
   let downloadAs name = prop "download" name
   let hreflang code = prop "hreflang" code
-  let media value = attribute "" "media" value
+  let media value = attribute "media" value
   let ping url = prop "ping" url
-  let rel value = attribute "" "rel" value
+  let rel value = attribute "rel" value
 
   (** {1 Maps} *)
 
@@ -439,9 +439,9 @@ module Attributes = struct
   (** {1 Embedded content} *)
 
   (* `src` is actually an attribute, not a property, but need it here for Elm compat... *)
-  let src str = attribute "" "src" str
-  let height n = attribute "" "height" (string_of_int n)
-  let width n = attribute "" "width" (string_of_int n)
+  let src str = attribute "src" str
+  let height n = attribute "height" (string_of_int n)
+  let width n = attribute "width" (string_of_int n)
   let alt value = prop "alt" value
 
   (** {1 Audio and Video} *)
@@ -468,8 +468,8 @@ module Attributes = struct
 
   (** {1 Tables} *)
 
-  let colspan n = attribute "" "colspan" (string_of_int n)
-  let rowspan n = attribute "" "rowspan" (string_of_int n)
+  let colspan n = attribute "colspan" (string_of_int n)
+  let rowspan n = attribute "rowspan" (string_of_int n)
   let headers value = prop "headers" value
   let scope value = prop "scope" value
   let align value = prop "align" value
@@ -477,8 +477,8 @@ module Attributes = struct
   (** {1 Header stuff} *)
 
   let async b = if b then prop "async" "async" else noProp
-  let charset value = attribute "" "charset" value
-  let content value = attribute "" "content" value
+  let charset value = attribute "charset" value
+  let content value = attribute "content" value
   let defer b = if b then prop "defer" "defer" else noProp
   let httpEquiv value = prop "http-equiv" value
   let language value = prop "language" value
@@ -491,26 +491,26 @@ module Attributes = struct
   let contenteditable b =
     if b then prop "contenteditable" "contenteditable" else noProp
 
-  let contextmenu id = attribute "" "contextmenu" id
+  let contextmenu id = attribute "contextmenu" id
   let dir value = prop "dir" value
-  let draggable value = attribute "" "draggable" value
+  let draggable value = attribute "draggable" value
   let dropzone value = prop "dropzone" value
-  let itemprop value = attribute "" "itemprop" value
+  let itemprop value = attribute "itemprop" value
   let lang code = prop "lang" code
   let spellcheck b = if b then prop "spellcheck" "spellcheck" else noProp
-  let tabindex n = attribute "" "tabindex" (string_of_int n)
+  let tabindex n = attribute "tabindex" (string_of_int n)
 
   (** {1 Key generation} *)
 
-  let challenge value = attribute "" "challenge" value
+  let challenge value = attribute "challenge" value
   let keytype value = prop "keytype" value
 
   (** {1 Miscellaneous} *)
 
   let cite url = prop "cite" url
-  let datetime value = attribute "" "datetime" value
-  let pubdate value = attribute "" "pubdate" value
-  let manifest value = attribute "" "manifest" value
+  let datetime value = attribute "datetime" value
+  let pubdate value = attribute "pubdate" value
+  let manifest value = attribute "manifest" value
 end
 
 module Events = struct

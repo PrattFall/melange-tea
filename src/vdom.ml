@@ -10,14 +10,16 @@ end
 module ApplicationCallbacks = struct
   type 'msg t = { enqueue : 'msg -> unit; on : 'msg SystemMessage.t -> unit }
 
+  let enqueue callbacksRef fn = !callbacksRef.enqueue fn
+  let on systemMessage callbacksRef = !callbacksRef.on systemMessage
+
   let wrap_callbacks func callbacks =
     Obj.magic ref
       {
-        enqueue = (fun msg -> !callbacks.enqueue (func msg));
+        enqueue = (fun msg -> enqueue callbacks (func msg));
         on =
           (fun smsg ->
-            let new_smsg = SystemMessage.wrap_callbacks_on func smsg in
-            !callbacks.on new_smsg);
+            smsg |> SystemMessage.wrap_callbacks_on func |. on callbacks);
       }
 end
 
@@ -34,8 +36,7 @@ module EventHandler = struct
   let emptyEventCB _ev : 'e Web.Event.callback option = None
 
   let eventHandler callbacks cb ev =
-    let open ApplicationCallbacks in
-    Option.iter !callbacks.enqueue (!cb ev)
+    Option.iter (ApplicationCallbacks.enqueue callbacks) (!cb ev)
 
   let callback key fn = EventHandlerCallback (key, fn)
 
@@ -60,36 +61,103 @@ module EventHandler = struct
     | Some cache ->
         Web.Node.remove_event_listener elem event_name cache.handler;
         None
+end
 
-  let mutate callbacks elem oldName newName oldHandlerType newHandlerType
-      oldCache newCache =
-    match !oldCache with
-    | None -> newCache := register callbacks elem newName newHandlerType
+module Attribute = struct
+  type t = { namespace : string; key : string; value : string }
+
+  let make ?(namespace = "") key value = { namespace; key; value }
+  let equals a1 a2 = a1.namespace = a2.namespace && a1.key = a2.key
+  let to_string a = String.concat "" [ " "; a.key; "=\""; a.value; "\"" ]
+
+  let apply_to_element elem a =
+    Web.Node.set_attribute ~namespace:a.namespace elem a.key a.value
+
+  let remove_from_element elem a =
+    Web.Node.remove_attribute ~namespace:a.namespace elem a.key
+
+  let mutate_on_element elem a =
+    Web.Node.set_attribute ~namespace:a.namespace elem a.key a.value
+end
+
+module Event = struct
+  type 'msg t = {
+    name : string;
+    handler : 'msg EventHandler.t;
+    cache : 'msg EventHandler.cache option ref;
+  }
+
+  let equals e1 e2 = e1.name = e2.name
+  let make name handler cache = { name; handler; cache }
+
+  let apply_to_element callbacks elem e =
+    e.cache := EventHandler.register callbacks elem e.name e.handler
+
+  let remove_from_element elem e =
+    e.cache := EventHandler.unregister elem e.name !(e.cache)
+
+  let mutate_handler callbacks elem oldE newE =
+    let open EventHandler in
+    match !(oldE.cache) with
+    | None -> newE.cache := register callbacks elem newE.name newE.handler
     | Some oldcache ->
-        if oldName = newName then (
-          newCache := !oldCache;
-          if equals oldHandlerType newHandlerType then ()
-          else oldcache.cb := get_callback newHandlerType)
+        if oldE.name = newE.name then (
+          newE.cache := !(oldE.cache);
+          if equals oldE.handler newE.handler then ()
+          else oldcache.cb := get_callback newE.handler)
         else (
-          oldCache := unregister elem oldName !oldCache;
-          newCache := register callbacks elem newName newHandlerType)
+          oldE.cache := unregister elem oldE.name !(oldE.cache);
+          newE.cache := register callbacks elem newE.name newE.handler)
+end
+
+module Style = struct
+  type t = (string * string) list
+
+  let to_string s =
+    String.concat ""
+      [
+        " style=\"";
+        String.concat ";"
+          (List.map (fun (k, v) -> String.concat "" [ k; ":"; v; ";" ]) s);
+        "\"";
+      ]
+
+  let apply_to_element elem s =
+    List.iter (fun (k, v) -> Web.Node.set_style_property elem k (Some v)) s
+
+  let remove_from_element elem s =
+    List.iter (fun (k, _) -> Web.Node.set_style_property elem k None) s
+
+  let mutate_on_element elem oldStyles newStyles =
+    (* Works for now  *)
+    List.iter
+      (fun (key, _) -> Web.Node.set_style_property elem key None)
+      oldStyles;
+    List.iter
+      (fun (key, value) -> Web.Node.set_style_property elem key (Some value))
+      newStyles
 end
 
 module Property = struct
   type 'msg t =
     | NoProp
     | RawProp of string * string
-    (* namespace, key, value *)
-    | Attribute of string * string * string
+    | Attribute of Attribute.t
     | Data of string * string
-    | Event of string * 'msg EventHandler.t * 'msg EventHandler.cache option ref
-    | Style of (string * string) list
+    | Event of 'msg Event.t
+    | Style of Style.t
 
   let empty = NoProp
+
+  let attribute ?(namespace = "") key value =
+    Attribute (Attribute.make ~namespace key value)
+
   let prop key value = RawProp (key, value)
-  let onCB name key cb = Event (name, EventHandlerCallback (key, cb), ref None)
-  let onMsg name msg = Event (name, EventHandlerMsg msg, ref None)
-  let attribute namespace key value = Attribute (namespace, key, value)
+
+  let onCB name key cb =
+    Event (Event.make name (EventHandlerCallback (key, cb)) (ref None))
+
+  let onMsg name msg = Event (Event.make name (EventHandlerMsg msg) (ref None))
   let data key value = Data (key, value)
   let style key value = Style [ (key, value) ]
   let styles s = Style s
@@ -102,50 +170,39 @@ module Property = struct
     match (x, y) with
     | NoProp, NoProp -> true
     | RawProp (k1, _), RawProp (k2, _) -> k1 = k2
-    | Attribute (ns1, k1, _), Attribute (ns2, k2, _) -> ns1 = ns2 && k1 = k2
+    | Attribute a1, Attribute a2 -> Attribute.equals a1 a2
     | Data (k1, _), Data (k2, _) -> k1 = k2
-    | Event (n1, _, _), Event (n2, _, _) -> n1 = n2
+    | Event e1, Event e2 -> Event.equals e1 e2
     | Style _, Style _ -> true
     | _ -> false
 
   (** Convert a Property to its HTML string representation *)
   let to_string = function
     | RawProp (k, v) -> String.concat "" [ " "; k; "=\""; v; "\"" ]
-    | Attribute (_, k, v) -> String.concat "" [ " "; k; "=\""; v; "\"" ]
+    | Attribute a -> Attribute.to_string a
     | Data (k, v) -> String.concat "" [ " data-"; k; "=\""; v; "\"" ]
-    | Style s ->
-        String.concat ""
-          [
-            " style=\"";
-            String.concat ";"
-              (List.map (fun (k, v) -> String.concat "" [ k; ":"; v; ";" ]) s);
-            "\"";
-          ]
+    | Style s -> Style.to_string s
     | _ -> ""
 
   let apply_to_element callbacks elem = function
     | NoProp -> ()
     | RawProp (k, v) -> Web.Node.set_prop elem k v
-    | Attribute (namespace, k, v) -> Web.Node.set_attribute ~namespace elem k v
+    | Attribute a -> Attribute.apply_to_element elem a
     | Data (k, v) ->
         Js.log ("TODO:  Add Data Unhandled", k, v);
         failwith "TODO:  Add Data Unhandled"
-    | Event (name, handlerType, cache) ->
-        cache := EventHandler.register callbacks elem name handlerType
-    | Style s ->
-        List.iter (fun (k, v) -> Web.Node.set_style_property elem k (Some v)) s
+    | Event e -> Event.apply_to_element callbacks elem e
+    | Style s -> Style.apply_to_element elem s
 
   let remove_from_element elem = function
     | NoProp -> ()
     | RawProp (k, _) -> Web.Node.set_prop elem k Js.Undefined.empty
-    | Attribute (namespace, k, _) -> Web.Node.remove_attribute ~namespace elem k
+    | Attribute a -> Attribute.remove_from_element elem a
     | Data (k, v) ->
         Js.log ("TODO:  Remove Data Unhandled", k, v);
         failwith "TODO:  Remove Data Unhandled"
-    | Event (name, _, cache) ->
-        cache := EventHandler.unregister elem name !cache
-    | Style s ->
-        List.iter (fun (k, _) -> Web.Node.set_style_property elem k None) s
+    | Event e -> Event.remove_from_element elem e
+    | Style s -> Style.remove_from_element elem s
 
   (** Replace a Property on an Element with another Property *)
   let replace_on_element callbacks elem oldProp newProp =
@@ -154,33 +211,17 @@ module Property = struct
 
   (** Modify a Property on an Element using values from another Property.
       (At the moment replaces everything) *)
-  let mutate_on_element callbacks elem oldProp = function
-    | RawProp (k, v) -> Web.Node.set_prop elem k v
-    | Attribute (namespace, k, v) -> Web.Node.set_attribute ~namespace elem k v
-    | Event (name, handler, cache) -> (
-        match oldProp with
-        | Event (oldName, oldHandler, oldCache) ->
-            EventHandler.mutate callbacks elem oldName name oldHandler handler
-              oldCache cache
-        | _ -> ())
-    | Data (k, v) ->
+  let mutate_on_element callbacks elem oldProp newProp =
+    match (oldProp, newProp) with
+    | Style oldStyles, Style newStyles ->
+        Style.mutate_on_element elem oldStyles newStyles
+    | Event oldE, Event newE -> Event.mutate_handler callbacks elem oldE newE
+    (* These just get replaced *)
+    | _, RawProp (k, v) -> Web.Node.set_prop elem k v
+    | _, Attribute a -> Attribute.mutate_on_element elem a
+    | _, Data (k, v) ->
         Js.log ("TODO:  Mutate Data Unhandled", k, v);
         failwith "TODO:  Mutate Data Unhandled"
-    | Style newStyles -> (
-        match oldProp with
-        | Style oldStyles ->
-            (* Works for now  *)
-            List.iter
-              (fun (key, _) -> Web.Node.set_style_property elem key None)
-              oldStyles;
-            List.iter
-              (fun (key, value) ->
-                Web.Node.set_style_property elem key (Some value))
-              newStyles
-        | _ ->
-            failwith
-              "Passed a non-Style to a new Style as a Mutations while the old \
-               Style is not actually a style!")
     | _ -> ()
 
   let apply callbacks elem oldProperties newProperties =
