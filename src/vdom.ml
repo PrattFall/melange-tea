@@ -138,12 +138,30 @@ module Style = struct
       newStyles
 end
 
+module DataAttribute = struct
+  type t = string * string
+
+  let to_string (k, v) = String.concat "" [ " data-"; k; "=\""; v; "\"" ]
+  let equals (k1, _) (k2, _) = k1 = k2
+
+  let apply_to_element elem (k, v) =
+    let dataset = Web.Node.dataset elem in
+    Js.Dict.set dataset k v
+
+  let remove_from_element elem (k, _) =
+    Web.Node.remove_from_dataset elem k
+
+  let mutate_on_element elem (k, v) =
+    let dataset = Web.Node.dataset elem in
+    Js.Dict.set dataset k v
+end
+
 module Property = struct
   type 'msg t =
     | NoProp
     | RawProp of string * string
     | Attribute of Attribute.t
-    | Data of string * string
+    | Data of DataAttribute.t
     | Event of 'msg Event.t
     | Style of Style.t
 
@@ -171,7 +189,7 @@ module Property = struct
     | NoProp, NoProp -> true
     | RawProp (k1, _), RawProp (k2, _) -> k1 = k2
     | Attribute a1, Attribute a2 -> Attribute.equals a1 a2
-    | Data (k1, _), Data (k2, _) -> k1 = k2
+    | Data d1, Data d2 -> DataAttribute.equals d1 d2
     | Event e1, Event e2 -> Event.equals e1 e2
     | Style _, Style _ -> true
     | _ -> false
@@ -180,7 +198,7 @@ module Property = struct
   let to_string = function
     | RawProp (k, v) -> String.concat "" [ " "; k; "=\""; v; "\"" ]
     | Attribute a -> Attribute.to_string a
-    | Data (k, v) -> String.concat "" [ " data-"; k; "=\""; v; "\"" ]
+    | Data d -> DataAttribute.to_string d
     | Style s -> Style.to_string s
     | _ -> ""
 
@@ -188,9 +206,7 @@ module Property = struct
     | NoProp -> ()
     | RawProp (k, v) -> Web.Node.set_prop elem k v
     | Attribute a -> Attribute.apply_to_element elem a
-    | Data (k, v) ->
-        Js.log ("TODO:  Add Data Unhandled", k, v);
-        failwith "TODO:  Add Data Unhandled"
+    | Data d -> DataAttribute.apply_to_element elem d
     | Event e -> Event.apply_to_element callbacks elem e
     | Style s -> Style.apply_to_element elem s
 
@@ -198,9 +214,7 @@ module Property = struct
     | NoProp -> ()
     | RawProp (k, _) -> Web.Node.set_prop elem k Js.Undefined.empty
     | Attribute a -> Attribute.remove_from_element elem a
-    | Data (k, v) ->
-        Js.log ("TODO:  Remove Data Unhandled", k, v);
-        failwith "TODO:  Remove Data Unhandled"
+    | Data d -> DataAttribute.remove_from_element elem d
     | Event e -> Event.remove_from_element elem e
     | Style s -> Style.remove_from_element elem s
 
@@ -219,9 +233,7 @@ module Property = struct
     (* These just get replaced *)
     | _, RawProp (k, v) -> Web.Node.set_prop elem k v
     | _, Attribute a -> Attribute.mutate_on_element elem a
-    | _, Data (k, v) ->
-        Js.log ("TODO:  Mutate Data Unhandled", k, v);
-        failwith "TODO:  Mutate Data Unhandled"
+    | _, Data d -> DataAttribute.mutate_on_element elem d
     | _ -> ()
 
   let apply callbacks elem oldProperties newProperties =

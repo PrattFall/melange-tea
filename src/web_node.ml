@@ -94,6 +94,15 @@ external _checked : 'a Dom.element_like -> bool Js.undefined = "checked"
 
 let checked node = Js.Undefined.toOption (_checked node)
 
+external dataset : 'a Dom.element_like -> string Js.Dict.t = "dataset" [@@mel.get]
+
+(* The `delete` keyword is not supported by Js.Dict *)
+let remove_from_dataset = [%mel.raw {|
+    function (elem, key) {
+        delete elem.dataset[key];
+    }
+|}]
+
 let remove_polyfill : unit -> unit =
  fun () ->
   [%mel.raw

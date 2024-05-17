@@ -511,6 +511,7 @@ module Attributes = struct
   let datetime value = attribute "datetime" value
   let pubdate value = attribute "pubdate" value
   let manifest value = attribute "manifest" value
+  let data = Vdom.Property.data
 end
 
 module Events = struct
@@ -568,17 +569,19 @@ module Events = struct
 
   let onCheckOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
-        ev |> Web_event.target
+        ev |> Web.Event.target
         |. Option.bind (fun x -> Some (Web_event.Target.checked x))
         |> Option.map msg)
 
   let onCheck ?(key = "") msg = onCheckOpt ~key (fun ev -> Some (msg ev))
 
+  (* TODO: Move this so that it works like onMsg and doesn't use `Option.get` *)
   let onChangeOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
-        ev |> Web_event.target
+        ev |> Web.Event.target
         |. Option.bind (fun x -> Some (Web_event.Target.value x))
-        |> Option.map msg)
+        |> Option.map msg
+        |> Option.get)
 
   let onChange ?(key = "") msg = onChangeOpt ~key (fun ev -> Some (msg ev))
   let onSubmit msg = preventDefaultOn "submit" (fun _ -> msg)

@@ -3,6 +3,7 @@ type example_key =
   | CounterDebugBeginner
   | CounterDebugStandard
   | CounterDebugProgram
+  | Datasets
   | ButtonUpdateSpan
   | AttributeRemoval
   | Drag
@@ -14,6 +15,7 @@ let example_key_to_string = function
   | CounterDebugBeginner -> "Counter Debug (Beginner)"
   | CounterDebugStandard -> "Counter Debug (Standard)"
   | CounterDebugProgram -> "Counter Debug (Program)"
+  | Datasets -> "Datasets"
   | ButtonUpdateSpan -> "Button Update Span"
   | AttributeRemoval -> "Attribute Removal"
   | Drag -> "Drag"
@@ -45,6 +47,8 @@ let attribute_removal () =
 
 let drag () = Drag.main (Js.Nullable.fromOption elem) () |> ignore
 
+let datasets() = Datasets.main (Js.Nullable.fromOption elem) () |> ignore
+
 let on_with_options () =
   Events_with_options.main (Js.Nullable.fromOption elem) () |> ignore
 
@@ -56,6 +60,7 @@ let examples =
     (CounterDebugBeginner, counter_debug_beginner);
     (CounterDebugStandard, counter_debug_standard);
     (CounterDebugProgram, counter_debug_program);
+    (Datasets, datasets);
     (ButtonUpdateSpan, btn_update_span);
     (AttributeRemoval, attribute_removal);
     (Drag, drag);
