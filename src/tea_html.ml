@@ -560,12 +560,12 @@ module Events = struct
   (** {1 Form helpers} *)
 
   let onInputOpt ?(key = "") (msg : string -> 'a option) =
-    onCB "input" key (fun (ev : 'e Dom.event_like) ->
+    onCB "input" key (fun ev ->
         ev |> Web_event.target
         |. Option.bind (fun x -> Some (Web_event.Target.value x))
         |> Option.map msg)
 
-  let onInput ?(key = "") msg = onInputOpt ~key (fun ev -> Some (msg ev))
+  let onInput ?(key = "") msg = onInputOpt ~key msg
 
   let onCheckOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
@@ -573,17 +573,16 @@ module Events = struct
         |. Option.bind (fun x -> Some (Web_event.Target.checked x))
         |> Option.map msg)
 
-  let onCheck ?(key = "") msg = onCheckOpt ~key (fun ev -> Some (msg ev))
+  let onCheck ?(key = "") msg = onCheckOpt ~key msg
 
   (* TODO: Move this so that it works like onMsg and doesn't use `Option.get` *)
   let onChangeOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
         ev |> Web.Event.target
         |. Option.bind (fun x -> Some (Web_event.Target.value x))
-        |> Option.map msg
-        |> Option.get)
+        |> Option.map msg)
 
-  let onChange ?(key = "") msg = onChangeOpt ~key (fun ev -> Some (msg ev))
+  let onChange ?(key = "") msg = onChangeOpt ~key msg
   let onSubmit msg = preventDefaultOn "submit" (fun _ -> msg)
 
   (** {1 Focus helpers} *)

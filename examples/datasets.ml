@@ -37,14 +37,14 @@ let view model =
         [
           type' "text";
           defaultValue data_key;
-          Events.onChange (fun x -> ChangeKeyText x);
+          Events.onInput(fun x -> ChangeKeyText x);
         ]
         [];
       input'
         [
           type' "text";
           defaultValue data_value;
-          Events.onChange (fun x -> ChangeValueText x);
+          Events.onInput (fun x -> ChangeValueText x);
         ]
         [];
       div [ data data_key data_value; class' "data-display" ] [];
