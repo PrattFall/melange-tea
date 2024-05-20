@@ -14,7 +14,7 @@ For now I am attempting to follow TEA/[The Elm Architecture](https://guide.elm-l
 
 ## Bucklescript-TEA's planned features that are still on the table
 
-- [X] Elm API: Following the Elm API as closely as OCaml allows.
+- [x] Elm API: Following the Elm API as closely as OCaml allows.
 - [ ] OCamlized-TEA: The Elm API is succinct, but highly inefficient in the amount of allocations it causes, though this is not necessary it would be nice to have a replacement API that takes effort to reduce the amount of allocations. Most real-world use would get near nothing out of this but for a few cases it would be quite useful to have an overhaul of the Virtual-DOM declaration style.
 - [ ] React: It would also be nice to have a React back-end for easier integration with React projects, both into and out of this component. This should not have any breaking change over the Elm API but would just be an extension on it.
 
@@ -35,17 +35,17 @@ For now I am attempting to follow TEA/[The Elm Architecture](https://guide.elm-l
 
 ### Proposed
 
+- ARIA attribute support
 - Copy Elm's `Browser` module structure
 - Add Style and Attribute constructors (An example would be the `feliz` project for Fable)
     - Removes the need for so many string literals everywhere (fewer chances of misspelling mistakes and such)
-- Make `classes` actually use the `classList` property
 - Allow optional interop/wrapping of React components
     - If there's a way to do it I'd also like Preact and/or WebComponents as well
 - Refactor, refactor, refactor
 
 ## Usage
 
-This project is currently not up on opam. If you want to run the examples in `test` you can clone the repo and do the following:
+This project is currently not up on opam. If you want to run the examples in `examples` you can clone the repo and do the following:
 
 Install dependencies with
 
@@ -57,10 +57,8 @@ npm run init
 Then run the project using
 
 ```bash
-npm run dev
+bun dev
 ```
-
-To change which test you are looking at, you can change the module being called in `test/test_client.ml`
 
 ### Example project
 
