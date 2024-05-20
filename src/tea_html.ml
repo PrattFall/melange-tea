@@ -559,13 +559,13 @@ module Events = struct
 
   (** {1 Form helpers} *)
 
-  let onInputOpt ?(key = "") (msg : string -> 'a option) =
+  let onInputOpt ?(key = "") msg =
     onCB "input" key (fun ev ->
         ev |> Web_event.target
         |. Option.bind (fun x -> Some (Web_event.Target.value x))
         |> Option.map msg)
 
-  let onInput ?(key = "") msg = onInputOpt ~key msg
+  let onInput ?(key = "") msg = onInputOpt ~key (fun x -> msg x)
 
   let onCheckOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
@@ -575,7 +575,6 @@ module Events = struct
 
   let onCheck ?(key = "") msg = onCheckOpt ~key msg
 
-  (* TODO: Move this so that it works like onMsg and doesn't use `Option.get` *)
   let onChangeOpt ?(key = "") msg =
     onCB "change" key (fun ev ->
         ev |> Web.Event.target
