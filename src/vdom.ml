@@ -303,6 +303,23 @@ module LazyGen = struct
 
   let make key gen cache = { key; gen; cache }
   let equals g1 g2 = g1.key = g2.key
+
+  let remove_child parent child old_lazy new_lazy =
+    ignore (Web.Node.remove_child parent child);
+    let old_vdom = !(old_lazy.cache) in
+    new_lazy.cache := old_vdom
+
+  let create_child callbacks creater parent old_child new_lazy =
+    let new_vdom = new_lazy.gen () in
+    new_lazy.cache := new_vdom;
+    let new_child = creater callbacks new_vdom in
+    ignore (Web.Node.insert_before parent new_child old_child)
+
+  let mutate old_lazy new_lazy =
+    let old_vdom = !(old_lazy.cache) in
+    let new_vdom = new_lazy.gen () in
+    new_lazy.cache := new_vdom;
+    (old_vdom, new_vdom)
 end
 
 module Node = struct
@@ -347,6 +364,8 @@ module Node = struct
     | LazyGen lzy -> to_string (lzy.gen ())
     | Tagger (_, vdom) -> to_string vdom
 
+  let tail_or_all = function [] -> [] | _ :: ls -> ls
+
   let rec create_dom_node callbacks newNode =
     let open DomNode in
     let new_child = DomNode.add_to_document newNode in
@@ -356,7 +375,7 @@ module Node = struct
          (Property.map_empty newNode.props)
          newNode.props);
 
-    patch callbacks new_child [||] 0 [] newNode.vdoms;
+    patch callbacks new_child [] [] newNode.vdoms;
 
     new_child
 
@@ -370,137 +389,148 @@ module Node = struct
         create_element callbacks vdom
     | Tagger (tagger, vdom) -> create_element (tagger callbacks) vdom
 
-  and mutate callbacks parent children child_index old_node new_node =
+  and mutate callbacks parent children old_node new_node =
     match (old_node, new_node) with
-    | Node old, Node nw ->
-        (* Different node entirely. Replace it *)
-        if old.unique <> nw.unique || old.tag_name <> nw.tag_name then
-          let oldChild = children.(child_index) in
-          let newChild = create_element callbacks new_node in
-          DomNode.replace parent oldChild newChild
-        else
-          let child = children.(child_index) in
-          let grandChildren = Web.Node.child_nodes child in
-          Property.apply callbacks child old.props nw.props;
-          patch callbacks child grandChildren 0 old.vdoms nw.vdoms
+    | Node old, Node nw -> (
+        match children with
+        | child :: _ ->
+            if old.unique <> nw.unique || old.tag_name <> nw.tag_name then
+              let new_child = create_element callbacks new_node in
+              DomNode.replace parent child new_child
+            else
+              let grandChildren = Array.to_list (Web.Node.child_nodes child) in
+              Property.apply callbacks child old.props nw.props;
+              patch callbacks child grandChildren old.vdoms nw.vdoms
+        | _ -> failwith "Not enough children passed to mutate")
     | _ -> failwith "Non-node passed to mutate"
 
-  (** Rectify the differences between two VDom Node lists *)
-  and patch callbacks parent children child_index old_vnodes new_vnodes =
+  and patch callbacks parent children old_vnodes new_vnodes =
     match (old_vnodes, new_vnodes) with
     | [], [] -> ()
-    | Tagger (_, old_vdom) :: old_rest, _ ->
-        patch callbacks parent children child_index (old_vdom :: old_rest)
-          new_vnodes
-    | old_node :: old_rest, Tagger (new_tagger, new_vdom) :: new_rest ->
-        patch (new_tagger callbacks) parent children child_index [ old_node ]
-          [ new_vdom ];
-        patch callbacks parent children (child_index + 1) old_rest new_rest
+    | old_node :: old_rest, new_node :: new_rest -> (
+        match (old_node, new_node) with
+        | Tagger (_, old_vdom), _ ->
+            patch callbacks parent children (old_vdom :: old_rest) new_vnodes
+        | _, Tagger (new_tagger, new_vdom) ->
+            patch (new_tagger callbacks) parent children [ old_node ]
+              [ new_vdom ];
+            patch callbacks parent (tail_or_all children) old_rest new_rest
+        | CommentNode old_comment, CommentNode new_comment
+          when old_comment = new_comment ->
+            patch callbacks parent (tail_or_all children) old_rest new_rest
+        | Text old_text, Text new_text ->
+            (if old_text <> new_text then
+               match children with
+               | child :: _ -> Web.Node.set_value child new_text
+               | _ -> failwith "Not enough children for set_value");
+            patch callbacks parent (tail_or_all children) old_rest new_rest
+        | LazyGen old_lazy, LazyGen new_lazy -> (
+            if LazyGen.equals old_lazy new_lazy then (
+              new_lazy.cache := !(old_lazy.cache);
+              patch callbacks parent (tail_or_all children) old_rest new_rest)
+            else
+              match (old_rest, new_rest) with
+              | older_node :: older_rest, newer_node :: newer_rest -> (
+                  match (older_node, newer_node) with
+                  | LazyGen older_lazy, LazyGen newer_lazy
+                    when LazyGen.equals older_lazy new_lazy
+                         && LazyGen.equals newer_lazy old_lazy -> (
+                      match children with
+                      | first_child :: second_child :: children ->
+                          DomNode.flip parent first_child second_child;
+                          patch callbacks parent children older_rest newer_rest
+                      | _ ->
+                          failwith
+                            "Not enough child elements left for LazyGen flip")
+                  | LazyGen older_lazy, _
+                    when LazyGen.equals older_lazy new_lazy -> (
+                      match children with
+                      | old_child :: children ->
+                          LazyGen.remove_child parent old_child older_lazy
+                            new_lazy;
+                          patch callbacks parent children older_rest new_rest
+                      | _ ->
+                          failwith
+                            "Not enough child elements left for LazyGen remove")
+                  | _, LazyGen newer_lazy
+                    when LazyGen.equals newer_lazy old_lazy -> (
+                      match children with
+                      | old_child :: children ->
+                          LazyGen.create_child callbacks create_element parent
+                            old_child new_lazy;
+                          patch callbacks parent children old_vnodes new_rest
+                      | _ ->
+                          failwith
+                            "Not enough child elements left for LazyGen create")
+                  | _ ->
+                      let old_vdom, new_vdom =
+                        LazyGen.mutate old_lazy new_lazy
+                      in
+                      patch callbacks parent children (old_vdom :: old_rest)
+                        (new_vdom :: new_rest))
+              | _ -> ())
+        | Node old_n, Node new_n when old_n.key = "" || new_n.key = "" ->
+            mutate callbacks parent children old_node new_node;
+            patch callbacks parent (tail_or_all children) old_rest new_rest
+        | Node old_n, Node new_n when old_n.key = new_n.key ->
+            patch callbacks parent (tail_or_all children) old_rest new_rest
+        | Node old_n, Node new_n -> (
+            match (old_rest, new_rest) with
+            | older_node :: older_rest, newer_node :: newer_rest -> (
+                match (older_node, newer_node) with
+                | Node older_n, Node newer_n
+                  when DomNode.equals older_n new_n
+                       && DomNode.equals old_n newer_n -> (
+                    match children with
+                    | first_child :: second_child :: children ->
+                        DomNode.flip parent first_child second_child;
+                        patch callbacks parent children older_rest newer_rest
+                    | _ -> failwith "Not enough children left for DomNode flip")
+                | Node older_n, _ when DomNode.equals older_n new_n -> (
+                    match children with
+                    | old_child :: children ->
+                        ignore (Web.Node.remove_child parent old_child);
+                        patch callbacks parent children old_vnodes new_rest
+                    | _ ->
+                        failwith "Not enough children left for DomNode remove")
+                | _, Node newer_n when DomNode.equals old_n newer_n -> (
+                    (* New node must have been added, so create it in the DOM *)
+                    match children with
+                    | old_child :: children ->
+                        let new_child = create_element callbacks new_node in
+                        ignore
+                          (Web.Node.insert_before parent new_child old_child);
+                        patch callbacks parent children old_vnodes new_rest
+                    | _ ->
+                        failwith "Not enough children left for DomNode insert")
+                | _ ->
+                    mutate callbacks parent children old_node new_node;
+                    patch callbacks parent (tail_or_all children) old_rest
+                      new_rest)
+            | _ ->
+                mutate callbacks parent children old_node new_node;
+                patch callbacks parent (tail_or_all children) old_rest new_rest)
+        | _, new_node -> (
+            match children with
+            | old_child :: children ->
+                let new_child = create_element callbacks new_node in
+                DomNode.replace parent old_child new_child;
+                patch callbacks parent children old_rest new_rest
+            | _ -> failwith "Not enough children for DomNode.replace"))
     | [], new_node :: new_rest ->
         let new_child = create_element callbacks new_node in
         ignore (Web.Node.append_child parent new_child);
-        patch callbacks parent children (child_index + 1) [] new_rest
-    | _ :: oldRest, [] ->
-        let child = children.(child_index) in
-        ignore (Web.Node.remove_child parent child);
-        patch callbacks parent children child_index oldRest []
-    | CommentNode old_comment :: old_rest, CommentNode new_comment :: new_rest
-      when old_comment = new_comment ->
-        patch callbacks parent children (child_index + 1) old_rest new_rest
-    | Text old_text :: old_rest, Text new_text :: new_rest ->
-        (if old_text <> new_text then
-           let child = children.(child_index) in
-           Web.Node.set_value child new_text);
-        patch callbacks parent children (child_index + 1) old_rest new_rest
-    | LazyGen old_lazy :: old_rest, LazyGen new_lazy :: new_rest -> (
-        if LazyGen.equals old_lazy new_lazy then (
-          new_lazy.cache := !(old_lazy.cache);
-          patch callbacks parent children (child_index + 1) old_rest new_rest)
-        else
-          match (old_rest, new_rest) with
-          | LazyGen older_lazy :: older_rest, LazyGen newer_lazy :: newer_rest
-            when LazyGen.equals older_lazy new_lazy
-                 && LazyGen.equals old_lazy newer_lazy ->
-              let first_child = children.(child_index) in
-              let second_child = children.(child_index + 1) in
-              DomNode.flip parent first_child second_child;
-              patch callbacks parent children (child_index + 2) older_rest
-                newer_rest
-          | LazyGen older_lazy :: older_rest, _
-            when LazyGen.equals older_lazy new_lazy ->
-              let old_child = children.(child_index) in
-              ignore (Web.Node.remove_child parent old_child);
-              let old_vdom = !(older_lazy.cache) in
-              new_lazy.cache := old_vdom;
-              patch callbacks parent children (child_index + 1) older_rest
-                new_rest
-          | _, LazyGen newer_lazy :: _ when LazyGen.equals newer_lazy old_lazy
-            ->
-              let old_child = children.(child_index) in
-              let new_vdom = new_lazy.gen () in
-              new_lazy.cache := new_vdom;
-              let new_child = create_element callbacks new_vdom in
-              ignore (Web.Node.insert_before parent new_child old_child);
-              patch callbacks parent children (child_index + 1) old_vnodes
-                new_rest
-          | _ ->
-              let old_vdom = !(old_lazy.cache) in
-              let new_vdom = new_lazy.gen () in
-              new_lazy.cache := new_vdom;
-              patch callbacks parent children child_index (old_vdom :: old_rest)
-                (new_vdom :: new_rest))
-    | Node old_node :: old_rest, Node new_node :: new_rest -> (
-        if old_node.key = new_node.key && old_node.key <> "" then
-          (* Found the same node so move on *)
-          patch callbacks parent children (child_index + 1) old_rest new_rest
-        else if old_node.key = "" || new_node.key = "" then (
-          (* one of the nodes doesn't have a key so mutate the node? *)
-          mutate callbacks parent children child_index (Node old_node)
-            (Node new_node);
-          patch callbacks parent children (child_index + 1) old_rest new_rest)
-        else
-          (* oldNode has a key that doesn't match newNode so drill into the rest of the node list *)
-          match (old_rest, new_rest) with
-          | Node older_node :: older_rest, Node newer_node :: newer_rest
-            when DomNode.equals older_node new_node
-                 && DomNode.equals old_node newer_node ->
-              (* The nodes swapped so flip the actual nodes in the DOM *)
-              let first_child = children.(child_index) in
-              let second_child = children.(child_index + 1) in
-              DomNode.flip parent first_child second_child;
-              patch callbacks parent children (child_index + 2) older_rest
-                newer_rest
-          | Node older_node :: older_rest, _
-            when DomNode.equals older_node new_node ->
-              (* Old node must have been deleted, so delete it from the DOM *)
-              let old_child = children.(child_index) in
-              ignore (Web.Node.remove_child parent old_child);
-              patch callbacks parent children (child_index + 1) older_rest
-                new_rest
-          | _, Node newer_node :: _ when DomNode.equals old_node newer_node ->
-              (* New node must have been added, so create it in the DOM *)
-              let old_child = children.(child_index) in
-              let new_child = create_element callbacks (Node new_node) in
-              let _attachedChild =
-                Web.Node.insert_before parent new_child old_child
-              in
-              patch callbacks parent children (child_index + 1) old_vnodes
-                new_rest
-          | _ ->
-              (* Something else happened? Better mutate *)
-              mutate callbacks parent children child_index (Node old_node)
-                (Node new_node);
-              patch callbacks parent children (child_index + 1) old_rest
-                new_rest)
-    | _ :: old_rest, new_node :: new_rest ->
-        let old_child = children.(child_index) in
-        let new_child = create_element callbacks new_node in
-        DomNode.replace parent old_child new_child;
-        patch callbacks parent children (child_index + 1) old_rest new_rest
+        patch callbacks parent (tail_or_all children) [] new_rest
+    | _ :: oldRest, [] -> (
+        match children with
+        | child :: children ->
+            ignore (Web.Node.remove_child parent child);
+            patch callbacks parent children oldRest []
+        | _ -> failwith "Not enough children to remove")
 
   let patch_nodes_into_element callbacks parent old_vnodes new_vnodes =
-    let children = Web.Node.child_nodes parent in
-    patch callbacks parent children 0 old_vnodes new_vnodes;
+    let children = Array.to_list (Web.Node.child_nodes parent) in
+    patch callbacks parent children old_vnodes new_vnodes;
     new_vnodes
 
   let patch_node_into_element callbacks parent old_vnode new_vnode =
