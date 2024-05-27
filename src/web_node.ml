@@ -1,4 +1,4 @@
-external child_nodes : 'a Dom.node_like -> 'b Dom.node_like Js.Array.t
+external child_nodes : 'a Dom.node_like -> 'b Dom.node_like array
   = "childNodes"
 [@@mel.get]
 

@@ -32,18 +32,20 @@ type ('model, 'msg) pumpInterface = {
   shutdown : 'msg Tea_cmd.t -> unit;
 }
 
-type 'msg programInterface =
-  < pushMsg : 'msg -> unit
-  ; shutdown : unit -> unit
-  ; getHtmlString : unit -> string >
-  Js.t
+module ProgramInterface = struct
+  type 'msg t =
+    < pushMsg : 'msg -> unit
+    ; shutdown : unit -> unit
+    ; getHtmlString : unit -> string >
+    Js.t
 
-external makeProgramInterface :
-  pushMsg:('msg -> unit) ->
-  shutdown:(unit -> unit) ->
-  getHtmlString:(unit -> string) ->
-  'msg programInterface = ""
-[@@mel.obj]
+  external make :
+    pushMsg:('msg -> unit) ->
+    shutdown:(unit -> unit) ->
+    getHtmlString:(unit -> string) ->
+    'msg t = ""
+  [@@mel.obj]
+end
 
 let programStateWrapper initModel pump shutdown =
   let open Vdom.ApplicationCallbacks in
@@ -105,7 +107,7 @@ let programStateWrapper initModel pump shutdown =
 
   pumperInterface.startup ();
 
-  makeProgramInterface ~pushMsg:handler ~shutdown:pi_requestShutdown
+  ProgramInterface.make ~pushMsg:handler ~shutdown:pi_requestShutdown
     ~getHtmlString:render_string
 
 let programLoop update view subscriptions initModel initCmd = function
@@ -227,11 +229,11 @@ let program =
      : ('flags, 'model, 'msg) program ->
        'a Dom.node_like Js.Nullable.t ->
        'flags ->
-       'msg programInterface)
+       'msg ProgramInterface.t)
     : ('flags, 'model, 'msg) program ->
       'a Dom.node_like Js.Nullable.t ->
       'flags ->
-      'msg programInterface)
+      'msg ProgramInterface.t)
 
 let standardProgram =
   ((fun { init; update; view; subscriptions } pnode args ->
@@ -247,11 +249,11 @@ let standardProgram =
      : ('flags, 'model, 'msg) standardProgram ->
        'a Dom.node_like Js.Nullable.t ->
        'flags ->
-       'msg programInterface)
+       'msg ProgramInterface.t)
     : ('flags, 'model, 'msg) standardProgram ->
       'a Dom.node_like Js.Nullable.t ->
       'flags ->
-      'msg programInterface)
+      'msg ProgramInterface.t)
 
 let beginnerProgram =
   ((fun { model; update; view } pnode () ->
@@ -266,10 +268,10 @@ let beginnerProgram =
      : ('model, 'msg) beginnerProgram ->
        'a Dom.node_like Js.Nullable.t ->
        unit ->
-       'msg programInterface)
+       'msg ProgramInterface.t)
     : ('model, 'msg) beginnerProgram ->
       'a Dom.node_like Js.Nullable.t ->
       unit ->
-      'msg programInterface)
+      'msg ProgramInterface.t)
 
 let map func vnode = Vdom.map func vnode
