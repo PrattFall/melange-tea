@@ -441,51 +441,49 @@ module Node = struct
         | Text old_text, Text new_text ->
             set_text_value children old_text new_text;
             next children old_rest new_rest
+        | LazyGen old_lazy, LazyGen new_lazy
+          when LazyGen.equals old_lazy new_lazy ->
+            new_lazy.cache := !(old_lazy.cache);
+            next children old_rest new_rest
         | LazyGen old_lazy, LazyGen new_lazy -> (
-            if LazyGen.equals old_lazy new_lazy then (
-              new_lazy.cache := !(old_lazy.cache);
-              next children old_rest new_rest)
-            else
-              match (old_rest, new_rest) with
-              | older_node :: older_rest, newer_node :: newer_rest -> (
-                  match (older_node, newer_node) with
-                  | LazyGen older_lazy, LazyGen newer_lazy
-                    when LazyGen.should_flip old_lazy new_lazy older_lazy
-                           newer_lazy -> (
-                      match children with
-                      | first_child :: second_child :: children ->
-                          DomNode.flip parent first_child second_child;
-                          continue children older_rest newer_rest
-                      | _ ->
-                          failwith
-                            "Not enough child elements left for LazyGen flip")
-                  | LazyGen older_lazy, _
-                    when LazyGen.equals older_lazy new_lazy -> (
-                      match children with
-                      | old_child :: children ->
-                          LazyGen.remove_child parent old_child older_lazy
-                            new_lazy;
-                          continue children older_rest new_rest
-                      | _ ->
-                          failwith
-                            "Not enough child elements left for LazyGen remove")
-                  | _, LazyGen newer_lazy
-                    when LazyGen.equals newer_lazy old_lazy -> (
-                      match children with
-                      | old_child :: children ->
-                          LazyGen.create_child callbacks create_element parent
-                            old_child new_lazy;
-                          continue children old_vnodes new_rest
-                      | _ ->
-                          failwith
-                            "Not enough child elements left for LazyGen create")
-                  | _ ->
-                      let old_vdom, new_vdom =
-                        LazyGen.mutate old_lazy new_lazy
-                      in
-                      continue children (old_vdom :: old_rest)
-                        (new_vdom :: new_rest))
-              | _ -> ())
+            match (old_rest, new_rest) with
+            | older_node :: older_rest, newer_node :: newer_rest -> (
+                match (older_node, newer_node) with
+                | LazyGen older_lazy, LazyGen newer_lazy
+                  when LazyGen.should_flip old_lazy new_lazy older_lazy
+                         newer_lazy -> (
+                    match children with
+                    | first_child :: second_child :: children ->
+                        DomNode.flip parent first_child second_child;
+                        continue children older_rest newer_rest
+                    | _ ->
+                        failwith
+                          "Not enough child elements left for LazyGen flip")
+                | LazyGen older_lazy, _ when LazyGen.equals older_lazy new_lazy
+                  -> (
+                    match children with
+                    | old_child :: children ->
+                        LazyGen.remove_child parent old_child older_lazy
+                          new_lazy;
+                        continue children older_rest new_rest
+                    | _ ->
+                        failwith
+                          "Not enough child elements left for LazyGen remove")
+                | _, LazyGen newer_lazy when LazyGen.equals newer_lazy old_lazy
+                  -> (
+                    match children with
+                    | old_child :: children ->
+                        LazyGen.create_child callbacks create_element parent
+                          old_child new_lazy;
+                        continue children old_vnodes new_rest
+                    | _ ->
+                        failwith
+                          "Not enough child elements left for LazyGen create")
+                | _ ->
+                    let old_vdom, new_vdom = LazyGen.mutate old_lazy new_lazy in
+                    continue children (old_vdom :: old_rest)
+                      (new_vdom :: new_rest))
+            | _ -> ())
         | Node old_n, Node new_n when old_n.key = "" || new_n.key = "" ->
             mutate callbacks parent children old_node new_node;
             next children old_rest new_rest
