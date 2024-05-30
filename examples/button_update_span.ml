@@ -3,7 +3,7 @@ open Tea.Html
 open Tea.Html.Attributes
 open Tea.Html.Events
 
-type msg = Trigger [@@bs.deriving { accessors }]
+type msg = Trigger
 type model = string option * string option
 
 let update' model = function

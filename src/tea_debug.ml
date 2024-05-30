@@ -297,7 +297,7 @@ let debug (string_of_msg : 'msg -> string)
     let history_count = string_of_int (List.length model.history) in
     div []
       [
-        view selected_model |> Tea.App.map client_msg;
+        view selected_model |> Tea_app.map client_msg;
         div
           [ A.id "debug"; A.classList [ ("paused", paused) ] ]
           [
@@ -330,8 +330,8 @@ let debug (string_of_msg : 'msg -> string)
 
 let debug_program :
     ('msg -> string) ->
-    ('flags, 'model, 'msg) Tea.App.program ->
-    ('flags, 'model debug_model, 'msg debug_msg) Tea.App.program =
+    ('flags, 'model, 'msg) Tea_app.program ->
+    ('flags, 'model debug_model, 'msg debug_msg) Tea_app.program =
  fun string_of_msg { init; update; view; subscriptions; shutdown } ->
   let init_debug, update', view', subscriptions', shutdown' =
     debug string_of_msg update view subscriptions shutdown
@@ -366,11 +366,11 @@ let debug_navigation_program :
   }
 
 let beginnerProgram :
-    ('model, 'msg) Tea.App.beginnerProgram ->
+    ('model, 'msg) Tea_app.beginnerProgram ->
     ('msg -> string) ->
     'a Dom.node_like Js.Nullable.t ->
     unit ->
-    'msg debug_msg Tea.App.ProgramInterface.t =
+    'msg debug_msg Tea_app.ProgramInterface.t =
  fun { model; update; view } string_of_msg pnode flags ->
   let debugged =
     debug_program string_of_msg
@@ -382,14 +382,14 @@ let beginnerProgram :
         shutdown = (fun _model -> Tea_cmd.none);
       }
   in
-  Tea.App.program debugged pnode flags
+  Tea_app.program debugged pnode flags
 
 let standardProgram :
-    ('flags, 'model, 'msg) Tea.App.standardProgram ->
+    ('flags, 'model, 'msg) Tea_app.standardProgram ->
     ('msg -> string) ->
     'a Dom.node_like Js.Nullable.t ->
     'flags ->
-    'msg debug_msg Tea.App.ProgramInterface.t =
+    'msg debug_msg Tea_app.ProgramInterface.t =
  fun { init; update; view; subscriptions } string_of_msg pnode flags ->
   let debugged =
     debug_program string_of_msg
@@ -401,19 +401,19 @@ let standardProgram :
         shutdown = (fun _model -> Tea_cmd.none);
       }
   in
-  Tea.App.program debugged pnode flags
+  Tea_app.program debugged pnode flags
 
 let program :
-    ('flags, 'model, 'msg) Tea.App.program ->
+    ('flags, 'model, 'msg) Tea_app.program ->
     ('msg -> string) ->
     'a Dom.node_like Js.Nullable.t ->
     'flags ->
-    'msg debug_msg Tea.App.ProgramInterface.t =
+    'msg debug_msg Tea_app.ProgramInterface.t =
  fun { init; update; view; subscriptions; shutdown } string_of_msg pnode flags ->
   let debugged =
     debug_program string_of_msg { init; update; view; subscriptions; shutdown }
   in
-  Tea.App.program debugged pnode flags
+  Tea_app.program debugged pnode flags
 
 let navigationProgram :
     (Web.Location.location -> 'msg) ->
@@ -421,7 +421,7 @@ let navigationProgram :
     ('msg -> string) ->
     'a Dom.node_like Js.Nullable.t ->
     'flags ->
-    'msg debug_msg Tea.App.ProgramInterface.t =
+    'msg debug_msg Tea_app.ProgramInterface.t =
  fun location_to_msg { init; update; view; subscriptions; shutdown }
      string_of_msg pnode flags ->
   let location location = location |> location_to_msg |> client_msg in

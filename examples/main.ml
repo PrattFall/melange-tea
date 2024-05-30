@@ -1,4 +1,5 @@
 type example_key =
+  | Elm
   | UnevenProperties
   | CounterDebugBeginner
   | CounterDebugStandard
@@ -11,6 +12,7 @@ type example_key =
   | HttpTask
 
 let example_key_to_string = function
+  | Elm -> "Elm Examples"
   | UnevenProperties -> "Uneven Properties"
   | CounterDebugBeginner -> "Counter Debug (Beginner)"
   | CounterDebugStandard -> "Counter Debug (Standard)"
@@ -26,6 +28,9 @@ external innerHtml : Dom.element -> string -> unit = "innerHTML" [@@mel.set]
 
 let elem = Tea.Web.Document.get_element_by_id "content"
 let buttons : Dom.element option = Tea.Web.Document.get_element_by_id "buttons"
+
+let elm () =
+  Elm.main (Js.Nullable.fromOption elem) () |> ignore
 
 let uneven_properties () =
   Uneven_properties.main (Js.Nullable.fromOption elem) () |> ignore
@@ -46,8 +51,7 @@ let attribute_removal () =
   Attribute_removal.main (Js.Nullable.fromOption elem) () |> ignore
 
 let drag () = Drag.main (Js.Nullable.fromOption elem) () |> ignore
-
-let datasets() = Datasets.main (Js.Nullable.fromOption elem) () |> ignore
+let datasets () = Datasets.main (Js.Nullable.fromOption elem) () |> ignore
 
 let on_with_options () =
   Events_with_options.main (Js.Nullable.fromOption elem) () |> ignore
@@ -56,6 +60,7 @@ let http_task () = Http_task.main (Js.Nullable.fromOption elem) () |> ignore
 
 let examples =
   [
+    (Elm, elm);
     (UnevenProperties, uneven_properties);
     (CounterDebugBeginner, counter_debug_beginner);
     (CounterDebugStandard, counter_debug_standard);
