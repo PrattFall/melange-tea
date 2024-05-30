@@ -32,10 +32,10 @@ For now I am attempting to follow TEA/[The Elm Architecture](https://guide.elm-l
     - This will break some people's older projects if they update to melange + melange-tea
 - Removed the XMLHttpRequest-related code in favor of external tools (like [melange-fetch](https://github.com/melange-community/melange-fetch))
 - Handle `data-` attributes
+- ARIA states and `role` attribute added
 
 ### Proposed
 
-- ARIA attribute support
 - Copy Elm's `Browser` module structure
 - Add Style and Attribute constructors (An example would be the `feliz` project for Fable)
     - Removes the need for so many string literals everywhere (fewer chances of misspelling mistakes and such)

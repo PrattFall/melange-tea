@@ -419,7 +419,6 @@ module Attributes = struct
 
   (** {1 Links and areas} *)
 
-  (* `href` is actually an attribute, not a property, but need it here for Elm compat... *)
   let href str = attribute "href" str
   let target t = prop "target" t
   let download b = if b then prop "download" "" else noProp
@@ -438,7 +437,6 @@ module Attributes = struct
 
   (** {1 Embedded content} *)
 
-  (* `src` is actually an attribute, not a property, but need it here for Elm compat... *)
   let src str = attribute "src" str
   let height n = attribute "height" (string_of_int n)
   let width n = attribute "width" (string_of_int n)
@@ -499,6 +497,63 @@ module Attributes = struct
   let lang code = prop "lang" code
   let spellcheck b = if b then prop "spellcheck" "spellcheck" else noProp
   let tabindex n = attribute "tabindex" (string_of_int n)
+
+  (** {1 WAI-ARIA} *)
+
+  module Aria = struct
+      let role r = attribute "role" r
+      let activeDescendant value = attribute "aria-activedescendant" value
+      let atomic value = attribute "aria-atomic" value
+      let autocomplete value = attribute "aria-autocomplete" value
+      let brailleLabel value = attribute "aria-braillelabel" value
+      let brailleRoleDescription value = attribute "aria-brailleroledescription" value
+      let busy value = attribute "aria-busy" value
+      let checked value = attribute "aria-checked" value
+      let colCount value = attribute "aria-colcount" value
+      let colIndex value = attribute "aria-colindex" value
+      let colIndexText value = attribute "aria-colindextext" value
+      let colSpan value = attribute "aria-colspan" value
+      let controls value = attribute "aria-controls" value
+      let current value = attribute "aria-current" value
+      let describedBy value = attribute "aria-describedby" value
+      let description value = attribute "aria-description" value
+      let details value = attribute "aria-details" value
+      let disabled value = attribute "aria-disabled" value
+      let errorMessage value = attribute "aria-errormessage" value
+      let expanded value = attribute "aria-expanded" value
+      let flowTo value = attribute "aria-flowto" value
+      let hasPopup value = attribute "aria-haspopup" value
+      let hidden value = attribute "aria-hidden" value
+      let invalid value = attribute "aria-invalid" value
+      let keyShortcuts value = attribute "aria-keyshortcuts" value
+      let label value = attribute "aria-label" value
+      let labelledBy value = attribute "aria-labelledby" value
+      let level value = attribute "aria-level" value
+      let live value = attribute "aria-live" value
+      let modal value = attribute "aria-modal" value
+      let multiLine value = attribute "aria-multiline" value
+      let multiSelectable value = attribute "aria-multiselectable" value
+      let orientation value = attribute "aria-orientation" value
+      let owns value = attribute "aria-owns" value
+      let placeholder value = attribute "aria-placeholder" value
+      let posInset value = attribute "aria-posinset" value
+      let pressed value = attribute "aria-pressed" value
+      let readOnly value = attribute "aria-readonly" value
+      let relevant value = attribute "aria-relevant" value
+      let required value = attribute "aria-required" value
+      let roleDescription value = attribute "aria-roledescription" value
+      let rowCount value = attribute "aria-rowcount" value
+      let rowIndex value = attribute "aria-rowindex" value
+      let rowIndexText value = attribute "aria-rowindextext" value
+      let rowSpan value = attribute "aria-rowspan" value
+      let selected value = attribute "aria-selected" value
+      let setSize value = attribute "aria-setsize" value
+      let sort value = attribute "aria-sort" value
+      let valueMax value = attribute "aria-valuemax" value
+      let valueMin value = attribute "aria-valuemin" value
+      let valueNow value = attribute "aria-valuenow" value
+      let valueText value = attribute "aria-valuetext" value
+  end
 
   (** {1 Key generation} *)
 
