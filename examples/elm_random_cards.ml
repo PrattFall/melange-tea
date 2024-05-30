@@ -62,7 +62,13 @@ let view_card = function
 let view model =
   div []
     [
-      div [] [ text "Disclaimer: Either Melange or OCaml doesn't currently seem to handle unicode well" ];
+      div
+        [ Html.Attributes.style "margin-bottom" "1em" ]
+        [
+          text
+            "Disclaimer: Either Melange or OCaml doesn't currently seem to \
+             handle unicode well";
+        ];
       button [ onClick Draw ] [ text "Draw" ];
-      div [ ] [ text (view_card model.card) ];
+      div [] [ text (view_card model.card) ];
     ]

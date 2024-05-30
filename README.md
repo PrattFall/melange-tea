@@ -42,6 +42,7 @@ For now I am attempting to follow TEA/[The Elm Architecture](https://guide.elm-l
 - Allow optional interop/wrapping of React components
     - If there's a way to do it I'd also like Preact and/or WebComponents as well
 - Refactor, refactor, refactor
+- Move underlying Cmd code to Promises
 
 ## Usage
 
