@@ -21,6 +21,12 @@ let list count (Generator genCmd) =
   in
   Generator (fun state -> buildList state count [])
 
+let uniform vs =
+  if Array.length vs < 1 then
+    failwith "Random.uniform requires an array of length > 0";
+
+  Generator (fun state -> vs.(Random.State.int state (Array.length vs)))
+
 let map func (Generator genCmd) = Generator (fun state -> func (genCmd state))
 
 let map2 func (Generator genCmd1) (Generator genCmd2) =
